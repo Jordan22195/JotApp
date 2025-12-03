@@ -43,6 +43,7 @@ class Note {
   String text;
   bool isEditing;
   bool isFavorite;
+  List<String> labels = [];
 
   Note({
     String? id,
@@ -52,9 +53,21 @@ class Note {
   }) : id = id ?? uuid.v4(); // generates unique ID
 }
 
+class Label {
+  final String id;
+  final String name;
+
+  Label({
+    required this.id,
+    required this.name,
+  });
+}
+
 
 List<Note> notes = [];
+List<String> existingLabels = [];
 List<NoteCard> noteCards = [];
+String? activeFilter;
 
 class NoteCard extends StatefulWidget {
   final String initialText;
@@ -78,8 +91,107 @@ class NoteCard extends StatefulWidget {
   _NoteCardState createState() => _NoteCardState();
 }
 
+class LabelPickerSheet extends StatefulWidget {
+  final List<String> labels;
+  final Function(String) onCreateLabel;
+  final Function(String) onSelectLabel;
+
+  const LabelPickerSheet({
+    required this.labels,
+    required this.onCreateLabel,
+    required this.onSelectLabel,
+    super.key,
+  });
+
+  @override
+  State<LabelPickerSheet> createState() => _LabelPickerSheetState();
+}
+
+class _LabelPickerSheetState extends State<LabelPickerSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text("Labels", style: TextStyle(fontSize: 20)),
+          const SizedBox(height: 12),
+
+          // List of labels
+          ...widget.labels.map((label) {
+            return ListTile(
+              title: Text(label),
+              onTap: () => widget.onSelectLabel(label),
+            );
+          }),
+
+          const Divider(),
+
+          // Create new label button
+          ListTile(
+            leading: const Icon(Icons.add),
+            title: const Text("Create new label"),
+            onTap: () async {
+              final newLabel = await _openCreateLabelDialog(context);
+              if (newLabel != null && newLabel.isNotEmpty) {
+                widget.onCreateLabel(newLabel);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<String?> _openCreateLabelDialog(BuildContext context) {
+  final controller = TextEditingController();
+  return showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("New label"),
+        content: TextField(controller: controller),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text("Create"),
+            onPressed: () => Navigator.pop(context, controller.text),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
 class _NoteCardState extends State<NoteCard> {
   late TextEditingController controller;
+
+void _openLabelPicker(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return LabelPickerSheet(
+        labels: existingLabels,
+        onCreateLabel: (newLabel) {
+          setState(() => existingLabels.add(newLabel));
+        },
+        onSelectLabel: (label) {
+          setState(() => widget.note.labels.add(label));
+        },
+      );
+    },
+  );
+}
 
 
   @override
@@ -132,8 +244,10 @@ class _NoteCardState extends State<NoteCard> {
               ),
 
             IconButton(icon: Icon(Icons.delete), onPressed: widget.onDelete),
-            IconButton(icon: Icon(Icons.menu), onPressed: widget.onFavorite),
-          ],
+            IconButton(icon: Icon(Icons.menu), onPressed: () => _openLabelPicker(context,)),
+            if(widget.note.labels.isNotEmpty)
+              Text(widget.note.labels[0])
+            ],
         ),
       ),
     );
@@ -168,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _counter++;
   setState(() {
       Note n = Note(
-        text: _counter.toString(),
+        text: "",
         isEditing: true,     // ← starts as TextField
     );
     print("new note");
