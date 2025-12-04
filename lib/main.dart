@@ -40,6 +40,7 @@ class MyApp extends StatelessWidget {
 
 class Note {
   final String id;
+  String labelId = "";
   String text;
   bool isEditing;
   bool isFavorite;
@@ -47,6 +48,7 @@ class Note {
 
   Note({
     String? id,
+    labelId = "",
     this.text = "",
     this.isEditing = false,
     this.isFavorite = false,
@@ -63,6 +65,7 @@ class Label {
   });
 }
 
+List<Label> labels = [];
 
 List<Note> notes = [];
 List<String> existingLabels = [];
@@ -92,12 +95,10 @@ class NoteCard extends StatefulWidget {
 }
 
 class LabelPickerSheet extends StatefulWidget {
-  final List<String> labels;
   final Function(String) onCreateLabel;
   final Function(String) onSelectLabel;
 
   const LabelPickerSheet({
-    required this.labels,
     required this.onCreateLabel,
     required this.onSelectLabel,
     super.key,
@@ -119,10 +120,11 @@ class _LabelPickerSheetState extends State<LabelPickerSheet> {
           const SizedBox(height: 12),
 
           // List of labels
-          ...widget.labels.map((label) {
+          ...labels.map((label) {
             return ListTile(
-              title: Text(label),
-              onTap: () => widget.onSelectLabel(label),
+              title: Text(label.name),
+              onTap: (){
+                setState(() =>  widget.onSelectLabel(label.id));},
             );
           }),
 
@@ -172,7 +174,7 @@ Future<String?> _openCreateLabelDialog(BuildContext context) {
 class _NoteCardState extends State<NoteCard> {
   late TextEditingController controller;
 
-void _openLabelPicker(BuildContext context) {
+void _openLabelPicker(BuildContext context, Note note) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -180,13 +182,80 @@ void _openLabelPicker(BuildContext context) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (context) {
-      return LabelPickerSheet(
-        labels: existingLabels,
-        onCreateLabel: (newLabel) {
-          setState(() => existingLabels.add(newLabel));
-        },
-        onSelectLabel: (label) {
-          setState(() => widget.note.labels.add(label));
+      // Use StatefulBuilder so we can call setState inside the sheet
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: MediaQuery.of(context).viewInsets.add(const EdgeInsets.all(16)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Labels', style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 8),
+
+                // Build the list from the parent's labels list (capture by reference)
+                ...labels.map((label) {
+                  final selected = note.labelId == label.id;
+                  return ListTile(
+                    title: Text(label.name),
+                    trailing: selected ? const Icon(Icons.check) : null,
+                    onTap: () {
+                      // Assign label to note in parent state
+                      setState(() => note.labelId = label.id); // parent setState
+                      // Also close the sheet (or keep open if you prefer)
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }).toList(),
+
+                const Divider(),
+
+                // Create new label tile
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Create new label'),
+                  onTap: () async {
+                    // Ask for name
+                    final name = await showDialog<String?>(
+                      context: context,
+                      builder: (context) {
+                        final controller = TextEditingController();
+                        return AlertDialog(
+                          title: const Text('Create label'),
+                          content: TextField(controller: controller),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () {
+                                final txt = controller.text.trim();
+                                if (txt.isNotEmpty) Navigator.pop(context, txt);
+                              },
+                              child: const Text('Create'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (name != null && name.isNotEmpty) {
+                      // 1) Add to parent labels list
+                      final newLabel = Label(id: uuid.v4(), name: name);
+                      setState(() => labels.add(newLabel)); // parent setState
+
+                      // 2) Also update the sheet's UI immediately
+                      setSheetState(() { /* no-op, labels has been mutated; this forces rebuild */ });
+
+                      // Optionally assign the new label to the note and close sheet
+                      //setState(() => note.labelId = newLabel.id);
+                      //Navigator.of(context).pop();
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
         },
       );
     },
@@ -194,11 +263,22 @@ void _openLabelPicker(BuildContext context) {
 }
 
 
+
   @override
   void initState() {
     super.initState();
     controller = TextEditingController(text: widget.note.text);
   
+  }
+
+  Text getCardLable(String labelId){
+    Text ret = Text("");
+    for( Label l in labels){
+      if ( l.id == widget.note.labelId){
+          ret = Text(l.name);
+      }
+    }
+    return ret;
   }
 
   @override
@@ -244,9 +324,9 @@ void _openLabelPicker(BuildContext context) {
               ),
 
             IconButton(icon: Icon(Icons.delete), onPressed: widget.onDelete),
-            IconButton(icon: Icon(Icons.menu), onPressed: () => _openLabelPicker(context,)),
-            if(widget.note.labels.isNotEmpty)
-              Text(widget.note.labels[0])
+            IconButton(icon: Icon(Icons.menu), onPressed: () => _openLabelPicker(context,widget.note)),
+            getCardLable(widget.note.labelId),
+            
             ],
         ),
       ),
