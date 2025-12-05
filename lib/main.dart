@@ -68,9 +68,12 @@ class Label {
 List<Label> labels = [];
 
 List<Note> notes = [];
+List<Note> filteredNotes = [];
 List<String> existingLabels = [];
 List<NoteCard> noteCards = [];
 String? activeFilter;
+
+String filterLabelId = "";
 
 class NoteCard extends StatefulWidget {
   final String initialText;
@@ -174,7 +177,7 @@ Future<String?> _openCreateLabelDialog(BuildContext context) {
 class _NoteCardState extends State<NoteCard> {
   late TextEditingController controller;
 
-void _openLabelPicker(BuildContext context, Note note) {
+void _openLabelPicker(BuildContext context, String labelId, {bool? filter=false, Note? note}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -195,13 +198,19 @@ void _openLabelPicker(BuildContext context, Note note) {
 
                 // Build the list from the parent's labels list (capture by reference)
                 ...labels.map((label) {
-                  final selected = note.labelId == label.id;
+                  final selected = labelId == label.id;
                   return ListTile(
                     title: Text(label.name),
                     trailing: selected ? const Icon(Icons.check) : null,
                     onTap: () {
+                      if(filter != null && filter){
+                        filterLabelId = label.id;
+                      }
+                      else if(note != null){
+                        setState(() => note.labelId = label.id); // parent setState
+
+                      }
                       // Assign label to note in parent state
-                      setState(() => note.labelId = label.id); // parent setState
                       // Also close the sheet (or keep open if you prefer)
                       Navigator.of(context).pop();
                     },
@@ -324,7 +333,7 @@ void _openLabelPicker(BuildContext context, Note note) {
               ),
 
             IconButton(icon: Icon(Icons.delete), onPressed: widget.onDelete),
-            IconButton(icon: Icon(Icons.menu), onPressed: () => _openLabelPicker(context,widget.note)),
+            IconButton(icon: Icon(Icons.menu), onPressed: () => _openLabelPicker(context,widget.note.labelId, note: widget.note)),
             getCardLable(widget.note.labelId),
             
             ],
@@ -363,6 +372,7 @@ class _MyHomePageState extends State<MyHomePage> {
   setState(() {
       Note n = Note(
         text: "",
+        labelId: filterLabelId,
         isEditing: true,     // ← starts as TextField
     );
     print("new note");
@@ -371,6 +381,7 @@ class _MyHomePageState extends State<MyHomePage> {
       note.isEditing = false;}
 
     notes.insert(0,n);
+    filteredNotes.insert(0,n);
     
   });
 }
@@ -398,6 +409,130 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+
+  Text getBannerText(){
+    Text ret = Text("Recent Notes");
+    for (Label l in labels){
+      if (l.id == filterLabelId){
+        ret = Text(l.name);
+      }
+    }
+    return  ret;
+  }
+  
+
+  void _openLabelPicker(BuildContext context, String labelId, {bool? filter=false, Note? note}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      // Use StatefulBuilder so we can call setState inside the sheet
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: MediaQuery.of(context).viewInsets.add(const EdgeInsets.all(16)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Labels', style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 8),
+
+                ListTile(
+                  title: Text("All"),
+                  trailing: (filterLabelId == "") ? const Icon(Icons.check) : null,
+                  onTap : () {
+                    setState(() {
+                      filterLabelId = "";
+                      filteredNotes.clear();
+                      for (Note n in notes){
+                        filteredNotes.insert(0, n);
+                      }
+                    });
+                  }
+                ),
+                // Build the list from the parent's labels list (capture by reference)
+                ...labels.map((label) {
+                  final selected = labelId == label.id;
+                  return ListTile(
+                    title: Text(label.name),
+                    trailing: selected ? const Icon(Icons.check) : null,
+                    onTap: () {
+                      setState(() {
+                        if(filter != null && filter){
+                        filterLabelId = label.id;
+                        filteredNotes.clear();
+                        for (Note n in notes){
+                          if(n.labelId == filterLabelId){
+                            filteredNotes.add(n);
+                          }
+                        }
+                      }
+                      });
+                      
+
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }).toList(),
+
+                const Divider(),
+
+                // Create new label tile
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Create new label'),
+                  onTap: () async {
+                    // Ask for name
+                    final name = await showDialog<String?>(
+                      context: context,
+                      builder: (context) {
+                        final controller = TextEditingController();
+                        return AlertDialog(
+                          title: const Text('Create label'),
+                          content: TextField(controller: controller),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () {
+                                final txt = controller.text.trim();
+                                if (txt.isNotEmpty) Navigator.pop(context, txt);
+                              },
+                              child: const Text('Create'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (name != null && name.isNotEmpty) {
+                      // 1) Add to parent labels list
+                      final newLabel = Label(id: uuid.v4(), name: name);
+                      setState(() => labels.add(newLabel)); // parent setState
+
+                      // 2) Also update the sheet's UI immediately
+                      setSheetState(() { /* no-op, labels has been mutated; this forces rebuild */ });
+
+                      // Optionally assign the new label to the note and close sheet
+                      //setState(() => note.labelId = newLabel.id);
+                      //Navigator.of(context).pop();
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -414,7 +549,19 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+  
+        title: getBannerText(),
+        actions: [
+            IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () {
+                setState(() {
+                _openLabelPicker(context, filterLabelId, filter: true);
+                  
+                });
+              },
+              )
+        ]
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
@@ -424,32 +571,38 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: .center,
           children: [
             FloatingActionButton(
+              
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20),),
+
+              
             onPressed: addNewNoteCard,
-            tooltip: 'Increment',
-            child: const Icon(Icons.add),
+            tooltip: 'New Note', 
+           // padding : const EdgeInsets.all(16.0),
+            child:  const Icon(Icons.add),
       ),
 
       // ListView.builder inside Expanded
           Expanded(
-            child: ListView.builder(
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                return NoteCard(
-                  key: ValueKey(notes[index].id),
-                  note: notes[index], 
-                  startInEditMode: notes[index].isEditing,
-                  initialText: "", 
-                  onSave: (newText) {
-                    setState(() => notes[index].text = newText);
-                  },
-                  onDelete: (){}, 
-                  onFavorite: (){},);
-              }
+            child: 
+                  ListView.builder(
+                    itemCount: filteredNotes.length,
+                    itemBuilder: (context, index) {
+                        return NoteCard(
+                          key: ValueKey(filteredNotes[index].id),
+                          note: filteredNotes[index], 
+                          startInEditMode: filteredNotes[index].isEditing,
+                          initialText: "", 
+                          onSave: (newText) {
+                            setState(() => filteredNotes[index].text = newText);
+                          },
+                          onDelete: (){}, 
+                          onFavorite: (){},);
+                    }
+                  )
+              
             ),
-        ),
-
         ]
-
           ,
         ),
       ),
