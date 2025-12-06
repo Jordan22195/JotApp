@@ -420,6 +420,24 @@ class _MyHomePageState extends State<MyHomePage> {
     return  ret;
   }
   
+  ListTile getAllTile(){
+    bool selected = filterLabelId == "";
+   return  ListTile(
+              title: Text("All"),
+              trailing: selected? const Icon(Icons.check) : null,
+              onTap : () {
+                setState(() {
+                  filterLabelId = "";
+                  filteredNotes.clear();
+                  for (Note n in notes){
+                    filteredNotes.add(n);
+                  }
+                  Navigator.of(context).pop();
+
+                });
+              }
+            );
+  }
 
   void _openLabelPicker(BuildContext context, String labelId, {bool? filter=false, Note? note}) {
   showModalBottomSheet(
@@ -439,20 +457,8 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 const Text('Labels', style: TextStyle(fontSize: 18)),
                 const SizedBox(height: 8),
-
-                ListTile(
-                  title: Text("All"),
-                  trailing: (filterLabelId == "") ? const Icon(Icons.check) : null,
-                  onTap : () {
-                    setState(() {
-                      filterLabelId = "";
-                      filteredNotes.clear();
-                      for (Note n in notes){
-                        filteredNotes.insert(0, n);
-                      }
-                    });
-                  }
-                ),
+                getAllTile(),
+                
                 // Build the list from the parent's labels list (capture by reference)
                 ...labels.map((label) {
                   final selected = labelId == label.id;
