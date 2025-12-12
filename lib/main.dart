@@ -49,23 +49,43 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController controller = TextEditingController();
 
   Text getBannerText() {
-    Text ret = Text("Recent Notes");
-    for (Label l in appData.labels) {
-      if (l.id == filterLabelId) {
-        ret = Text(l.name);
+    Text ret = Text("");
+    if (filterLabelId == CATAGORY_FILTER_ALL) {
+      ret = Text("All Notes");
+    } else if (filterLabelId == CATAGORY_FILTER_UNSORTED) {
+      ret = Text("Uncategorized Notes");
+    } else {
+      for (Label l in appData.labels) {
+        if (l.id == filterLabelId) {
+          ret = Text(l.name);
+        }
       }
     }
     return ret;
   }
 
-  ListTile getAllTile() {
-    bool selected = filterLabelId == "";
+  ListTile buildAllCategoriesTile() {
+    bool selected = filterLabelId == CATAGORY_FILTER_ALL;
     return ListTile(
-      title: Text("All"),
+      title: Text("All Notes"),
       trailing: selected ? const Icon(Icons.check) : null,
       onTap: () {
         setState(() {
           setCatagoryFilter(CATAGORY_FILTER_ALL);
+          Navigator.of(context).pop();
+        });
+      },
+    );
+  }
+
+  ListTile buildUncategorizedTile() {
+    bool selected = filterLabelId == CATAGORY_FILTER_UNSORTED;
+    return ListTile(
+      title: Text("Uncatgorized Notes"),
+      trailing: selected ? const Icon(Icons.check) : null,
+      onTap: () {
+        setState(() {
+          setCatagoryFilter(CATAGORY_FILTER_UNSORTED);
           Navigator.of(context).pop();
         });
       },
@@ -97,7 +117,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   const Text('Categories', style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 8),
-                  getAllTile(),
+                  buildUncategorizedTile(),
+                  buildAllCategoriesTile(),
 
                   // Build the list from the parent's labels list (capture by reference)
                   ...appData.labels.map((label) {
