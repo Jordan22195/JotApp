@@ -21,7 +21,7 @@ Future<AppData> loadAppData() async {
 
   if (!file.existsSync()) {
     // Return an empty structure on first run
-    return AppData(notes: [], labels: []);
+    return AppData(notes: [], categories: []);
   }
   print("file found");
 
@@ -32,7 +32,7 @@ Future<AppData> loadAppData() async {
 }
 
 class AppDataController extends ChangeNotifier {
-  AppData data = AppData(notes: [], labels: []);
+  AppData data = AppData(notes: [], categories: []);
 
   AppDataController() {
     _initialize();

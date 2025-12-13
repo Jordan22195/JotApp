@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'noteCard.dart';
-import 'labelPicker.dart';
+import 'categoryPicker.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
 
@@ -50,13 +50,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Text getBannerText() {
     Text ret = Text("");
-    if (filterLabelId == CATAGORY_FILTER_ALL) {
+    if (filterCategoryId == CATAGORY_FILTER_ALL) {
       ret = Text("All Notes");
-    } else if (filterLabelId == CATAGORY_FILTER_UNSORTED) {
+    } else if (filterCategoryId == CATAGORY_FILTER_UNSORTED) {
       ret = Text("Uncategorized Notes");
     } else {
-      for (Label l in appData.labels) {
-        if (l.id == filterLabelId) {
+      for (Category l in appData.categories) {
+        if (l.id == filterCategoryId) {
           ret = Text(l.name);
         }
       }
@@ -65,10 +65,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListTile buildAllCategoriesTile() {
-    bool selected = filterLabelId == CATAGORY_FILTER_ALL;
+    bool selected = filterCategoryId == CATAGORY_FILTER_ALL;
     return ListTile(
       title: Text("All Notes"),
-      trailing: selected ? const Icon(Icons.check) : null,
+      trailing: categoryEditMode
+          ? null
+          : selected
+          ? const Icon(Icons.check)
+          : null,
       onTap: () {
         setState(() {
           setCatagoryFilter(CATAGORY_FILTER_ALL);
@@ -79,10 +83,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListTile buildUncategorizedTile() {
-    bool selected = filterLabelId == CATAGORY_FILTER_UNSORTED;
+    bool selected = filterCategoryId == CATAGORY_FILTER_UNSORTED;
     return ListTile(
-      title: Text("Uncatgorized Notes"),
-      trailing: selected ? const Icon(Icons.check) : null,
+      title: Text("Uncategorized Notes"),
+      trailing: categoryEditMode
+          ? null
+          : selected
+          ? const Icon(Icons.check)
+          : null,
       onTap: () {
         setState(() {
           setCatagoryFilter(CATAGORY_FILTER_UNSORTED);
@@ -92,12 +100,15 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  bool categoryEditMode = false;
+
   void _openFilterPicker(
     BuildContext context,
-    String labelId, {
+    String cateogryId, {
     bool? filter = false,
     Note? note,
   }) {
+    categoryEditMode = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -115,21 +126,58 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Categories', style: TextStyle(fontSize: 18)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            "Categories",
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: categoryEditMode
+                            ? Icon(Icons.check)
+                            : Icon(Icons.edit),
+                        onPressed: () {
+                          setState(() {
+                            categoryEditMode = !categoryEditMode;
+                          });
+                          setSheetState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 8),
                   buildUncategorizedTile(),
                   buildAllCategoriesTile(),
+                  const Divider(),
 
-                  // Build the list from the parent's labels list (capture by reference)
-                  ...appData.labels.map((label) {
-                    final selected = filterLabelId == label.id;
+                  // Build the list from the parent's category's list (capture by reference)
+                  ...appData.categories.map((category) {
+                    final selected = filterCategoryId == category.id;
                     return ListTile(
-                      title: Text(label.name),
-                      trailing: selected ? const Icon(Icons.check) : null,
+                      title: Text(category.name),
+                      trailing: categoryEditMode
+                          ? IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  deleteCategory(category.id);
+                                });
+                                setSheetState(() {});
+                              },
+                              icon: Icon(Icons.delete),
+                            )
+                          : selected
+                          ? const Icon(Icons.check)
+                          : null,
+                      //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
                       onTap: () {
                         setState(() {
                           if (filter != null && filter) {
-                            setCatagoryFilter(label.id);
+                            setCatagoryFilter(category.id);
                           }
                         });
 
@@ -140,10 +188,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   const Divider(),
 
-                  // Create new label tile
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: const Text('Create new label'),
+                    title: const Text('Create new Category'),
                     onTap: () async {
                       // Ask for name
                       final name = await showDialog<String?>(
@@ -151,7 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         builder: (context) {
                           final controller = TextEditingController();
                           return AlertDialog(
-                            title: const Text('Create label'),
+                            title: const Text('Create Category'),
                             content: TextField(controller: controller),
                             actions: [
                               TextButton(
@@ -173,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                       if (name != null && name.isNotEmpty) {
                         setState(() {
-                          createNewLabel(name);
+                          createNewCategory(name);
                           setSheetState(() {});
                         });
                       }
@@ -204,7 +251,7 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: Icon(Icons.menu),
             onPressed: () {
               setState(() {
-                _openFilterPicker(context, filterLabelId, filter: true);
+                _openFilterPicker(context, filterCategoryId, filter: true);
               });
             },
           ),
@@ -242,7 +289,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     onSave: (newText) {
                       setState(() => filteredNotes[index].text = newText);
                     },
-                    onDelete: () {},
+                    onDelete: () {
+                      setState(() {
+                        deleteNote(filteredNotes[index].id);
+                      });
+                    },
                     onFavorite: () {},
                   );
                 },

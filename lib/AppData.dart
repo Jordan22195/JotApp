@@ -2,13 +2,13 @@ import 'package:uuid/uuid.dart';
 
 var uuid = Uuid();
 
-AppData appData = AppData(notes: [], labels: []);
+AppData appData = AppData(notes: [], categories: []);
 
 class AppData {
   final List<Note> notes;
-  final List<Label> labels;
+  final List<Category> categories;
 
-  AppData({required this.notes, required this.labels});
+  AppData({required this.notes, required this.categories});
 
   factory AppData.fromJson(Map<String, dynamic> json) {
     List<dynamic> safeList(dynamic value) {
@@ -20,48 +20,52 @@ class AppData {
       notes: safeList(
         json['notes'],
       ).map((e) => Note.fromJson(e as Map<String, dynamic>)).toList(),
-      labels: safeList(
+      categories: safeList(
         json['categories'],
-      ).map((e) => Label.fromJson(e as Map<String, dynamic>)).toList(),
+      ).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'notes': notes.map((n) => n.toJson()).toList(),
-    'categories': labels.map((c) => c.toJson()).toList(),
+    'categories': categories.map((c) => c.toJson()).toList(),
   };
 }
 
 class Note {
   final String id;
-  String labelId = "";
+  String categoryId = "";
   String text;
   bool isEditing;
   bool isFavorite;
-  List<String> labels = [];
+  List<String> categories = [];
 
   Note({
     String? id,
-    this.labelId = "",
+    this.categoryId = "",
     this.text = "",
     this.isEditing = false,
     this.isFavorite = false,
   }) : id = id ?? uuid.v4(); // generates unique ID
 
   factory Note.fromJson(Map<String, dynamic> json) =>
-      Note(id: json['id'], text: json['text'], labelId: json['labelId']);
+      Note(id: json['id'], text: json['text'], categoryId: json['categoryId']);
 
-  Map<String, dynamic> toJson() => {'id': id, 'text': text, 'labelId': labelId};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'text': text,
+    'categoryId': categoryId,
+  };
 }
 
-class Label {
+class Category {
   final String id;
   final String name;
 
-  Label({required this.id, required this.name});
+  Category({required this.id, required this.name});
 
-  factory Label.fromJson(Map<String, dynamic> json) =>
-      Label(id: json['id'], name: json['name']);
+  factory Category.fromJson(Map<String, dynamic> json) =>
+      Category(id: json['id'], name: json['name']);
 
   Map<String, dynamic> toJson() => {'id': id, 'name': name};
 }

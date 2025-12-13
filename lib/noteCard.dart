@@ -30,7 +30,7 @@ class _NoteCardState extends State<NoteCard> {
 
   void _openCategoryPicker(
     BuildContext context,
-    String labelId, {
+    String categoryId, {
     bool? filter = false,
     Note? note,
   }) {
@@ -51,24 +51,24 @@ class _NoteCardState extends State<NoteCard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Labels', style: TextStyle(fontSize: 18)),
+                  const Text('Categories', style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 8),
 
-                  // Build the list from the parent's labels list (capture by reference)
-                  ...appData.labels.map((label) {
-                    final selected = labelId == label.id;
+                  // Build the list from the parent's category's list (capture by reference)
+                  ...appData.categories.map((category) {
+                    final selected = categoryId == category.id;
                     return ListTile(
-                      title: Text(label.name),
+                      title: Text(category.name),
                       trailing: selected ? const Icon(Icons.check) : null,
                       onTap: () {
                         if (filter != null && filter) {
-                          filterLabelId = label.id;
+                          filterCategoryId = category.id;
                         } else if (note != null) {
                           setState(
-                            () => setNoteCatagory(note.id, label.id),
+                            () => setNoteCatagory(note.id, category.id),
                           ); // parent setState
                         }
-                        // Assign label to note in parent state
+                        // Assign category to note in parent state
                         // Also close the sheet (or keep open if you prefer)
                         Navigator.of(context).pop();
                       },
@@ -77,10 +77,10 @@ class _NoteCardState extends State<NoteCard> {
 
                   const Divider(),
 
-                  // Create new label tile
+                  // Create new category tile
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: const Text('Create new label'),
+                    title: const Text('Create New Category'),
                     onTap: () async {
                       // Ask for name
                       final name = await showDialog<String?>(
@@ -88,7 +88,7 @@ class _NoteCardState extends State<NoteCard> {
                         builder: (context) {
                           final controller = TextEditingController();
                           return AlertDialog(
-                            title: const Text('Create label'),
+                            title: const Text('Create Category'),
                             content: TextField(controller: controller),
                             actions: [
                               TextButton(
@@ -109,17 +109,13 @@ class _NoteCardState extends State<NoteCard> {
                       );
 
                       if (name != null && name.isNotEmpty) {
-                        // 1) Add to parent labels list
-                        final newLabel = Label(id: uuid.v4(), name: name);
-                        setState(() => createNewLabel(name)); // parent setState
+                        // 1) Add to parent category list
+                        final newCategory = Category(id: uuid.v4(), name: name);
+                        setState(
+                          () => createNewCategory(name),
+                        ); // parent setState
                         // 2) Also update the sheet's UI immediately
-                        setSheetState(() {
-                          /* no-op, labels has been mutated; this forces rebuild */
-                        });
-
-                        // Optionally assign the new label to the note and close sheet
-                        //setState(() => note.labelId = newLabel.id);
-                        //Navigator.of(context).pop();
+                        setSheetState(() {});
                       }
                     },
                   ),
@@ -140,10 +136,10 @@ class _NoteCardState extends State<NoteCard> {
     controller = TextEditingController(text: widget.note.text);
   }
 
-  Text getCardCategory(String labelId) {
+  Text getCardCategory(String categoryId) {
     Text ret = Text("");
-    for (Label l in appData.labels) {
-      if (l.id == widget.note.labelId) {
+    for (Category l in appData.categories) {
+      if (l.id == categoryId) {
         ret = Text(l.name);
       }
     }
@@ -187,17 +183,22 @@ class _NoteCardState extends State<NoteCard> {
                   saveAppData();
                 },
               ),
-
-            IconButton(icon: Icon(Icons.delete), onPressed: widget.onDelete),
+            if (widget.note.isEditing)
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () => setState(() {
+                  widget.onDelete(); //deleteNote(widget.note.id);
+                }),
+              ),
             IconButton(
               icon: Icon(Icons.menu),
               onPressed: () => _openCategoryPicker(
                 context,
-                widget.note.labelId,
+                widget.note.categoryId,
                 note: widget.note,
               ),
             ),
-            getCardCategory(widget.note.labelId),
+            getCardCategory(widget.note.categoryId),
           ],
         ),
       ),

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'AppData.dart';
 
-class LabelPickerSheet extends StatefulWidget {
-  final Function(String) onCreateLabel;
-  final Function(String) onSelectLabel;
+class CategoryPickerSheet extends StatefulWidget {
+  final Function(String) onCreateCategory;
+  final Function(String) onSelectCategory;
 
-  const LabelPickerSheet({
-    required this.onCreateLabel,
-    required this.onSelectLabel,
+  const CategoryPickerSheet({
+    required this.onCreateCategory,
+    required this.onSelectCategory,
     super.key,
   });
 
   @override
-  State<LabelPickerSheet> createState() => _LabelPickerSheetState();
+  State<CategoryPickerSheet> createState() => _CategoryPickerSheetState();
 }
 
-class _LabelPickerSheetState extends State<LabelPickerSheet> {
+class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -23,29 +23,28 @@ class _LabelPickerSheetState extends State<LabelPickerSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("Labels", style: TextStyle(fontSize: 20)),
+          const Text("Categories", style: TextStyle(fontSize: 20)),
           const SizedBox(height: 12),
 
-          // List of labels
-          ...appData.labels.map((label) {
+          ...appData.categories.map((category) {
             return ListTile(
-              title: Text(label.name),
+              title: Text(category.name),
               onTap: () {
-                setState(() => widget.onSelectLabel(label.id));
+                setState(() => widget.onSelectCategory(category.id));
               },
             );
           }),
 
           const Divider(),
 
-          // Create new label button
+          // Create new category button
           ListTile(
             leading: const Icon(Icons.add),
-            title: const Text("Create new label"),
+            title: const Text("Create New Category"),
             onTap: () async {
-              final newLabel = await _openCreateLabelDialog(context);
-              if (newLabel != null && newLabel.isNotEmpty) {
-                widget.onCreateLabel(newLabel);
+              final newCategory = await _openCreateCategoryDialog(context);
+              if (newCategory != null && newCategory.isNotEmpty) {
+                widget.onCreateCategory(newCategory);
               }
             },
           ),
@@ -55,13 +54,13 @@ class _LabelPickerSheetState extends State<LabelPickerSheet> {
   }
 }
 
-Future<String?> _openCreateLabelDialog(BuildContext context) {
+Future<String?> _openCreateCategoryDialog(BuildContext context) {
   final controller = TextEditingController();
   return showDialog(
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: const Text("New label"),
+        title: const Text("New Category"),
         content: TextField(controller: controller),
         actions: [
           TextButton(

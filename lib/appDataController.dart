@@ -3,20 +3,20 @@ import 'noteCard.dart';
 import 'dataStorage.dart';
 
 List<Note> filteredNotes = [];
-List<String> existingLabels = [];
+List<String> existingCategories = [];
 List<NoteCard> noteCards = [];
 const String CATAGORY_FILTER_ALL = "ALL";
 const String CATAGORY_FILTER_UNSORTED = "";
-String filterLabelId = "";
+String filterCategoryId = "";
 
 void setCatagoryFilter(String filterId) {
-  filterLabelId = filterId;
+  filterCategoryId = filterId;
 }
 
 void setNoteCatagory(String noteId, String catagoryId) {
   for (Note n in appData.notes) {
     if (n.id == noteId) {
-      n.labelId = catagoryId;
+      n.categoryId = catagoryId;
     }
   }
   saveAppData();
@@ -25,8 +25,9 @@ void setNoteCatagory(String noteId, String catagoryId) {
 void buildFilteredNotesList() {
   filteredNotes.clear();
   for (Note n in appData.notes) {
-    print('${n.labelId} , $filterLabelId');
-    if (n.labelId == filterLabelId || filterLabelId == CATAGORY_FILTER_ALL) {
+    print('${n.categoryId} , $filterCategoryId');
+    if (n.categoryId == filterCategoryId ||
+        filterCategoryId == CATAGORY_FILTER_ALL) {
       filteredNotes.add(n);
     }
   }
@@ -38,7 +39,7 @@ void buildFilteredNotesList() {
 void addNewNoteCard() {
   Note n = Note(
     text: "",
-    labelId: filterLabelId,
+    categoryId: filterCategoryId,
     isEditing: true, // ← starts as TextField
   );
   print("new note");
@@ -51,6 +52,30 @@ void addNewNoteCard() {
   saveAppData();
 }
 
-void createNewLabel(String name) {
-  appData.labels.add(Label(id: uuid.v4(), name: name));
+void deleteNote(String noteId) {
+  for (int i = 0; i < appData.notes.length; i++) {
+    if (appData.notes[i].id == noteId) {
+      appData.notes.removeAt(i);
+    }
+  }
+  saveAppData();
+}
+
+void deleteCategory(String categoryId) {
+  for (Note n in appData.notes) {
+    if (n.categoryId == categoryId) {
+      n.categoryId = CATAGORY_FILTER_UNSORTED;
+    }
+  }
+  for (int i = 0; i < appData.categories.length; i++) {
+    if (appData.categories[i].id == categoryId) {
+      appData.categories.removeAt(i);
+    }
+  }
+  saveAppData();
+}
+
+void createNewCategory(String name) {
+  appData.categories.add(Category(id: uuid.v4(), name: name));
+  saveAppData();
 }
