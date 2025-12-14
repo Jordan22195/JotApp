@@ -15,6 +15,7 @@ void setCatagoryFilter(String filterId) {
 }
 
 void setNoteCatagory(String noteId, String catagoryId) {
+  print("set note category");
   for (Note n in appData.notes) {
     if (n.id == noteId) {
       n.categoryId = catagoryId;
@@ -76,9 +77,12 @@ void deleteCategory(String categoryId) {
   saveAppData();
 }
 
-void createNewCategory(String name) {
-  appData.categories.add(Category(id: uuid.v4(), name: name));
+// Returns new category Id
+String createNewCategory(String name) {
+  Category newCategory = Category(id: uuid.v4(), name: name);
+  appData.categories.add(newCategory);
   saveAppData();
+  return newCategory.id;
 }
 
 void setCategoryAsChecklist(String categoryId, bool value) {

@@ -110,12 +110,16 @@ class _NoteCardState extends State<NoteCard> {
 
                       if (name != null && name.isNotEmpty) {
                         // 1) Add to parent category list
-                        final newCategory = Category(id: uuid.v4(), name: name);
-                        setState(
-                          () => createNewCategory(name),
-                        ); // parent setState
+                        setState(() {
+                          String newId = createNewCategory(name);
+                          if (note != null) {
+                            setNoteCatagory(note.id, newId); // parent setState
+                          }
+                        });
+
                         // 2) Also update the sheet's UI immediately
                         setSheetState(() {});
+                        Navigator.of(context).pop();
                       }
                     },
                   ),
@@ -234,14 +238,24 @@ class _NoteCardState extends State<NoteCard> {
             Row(
               children: [
                 const SizedBox(width: 40),
-                if (getCategory(widget.note.categoryId).showTimestamps)
-                  Text(getNoteCreationDateTime(widget.note.id)),
-                Expanded(
-                  child: Text(
-                    getCardCategory(widget.note.categoryId),
-                    textAlign: TextAlign.right,
+
+                if (filterCategoryId == CATAGORY_FILTER_ALL ||
+                    filterCategoryId == CATAGORY_FILTER_UNSORTED)
+                  Expanded(
+                    child: Text(
+                      getCardCategory(widget.note.categoryId),
+                      style: TextStyle(fontSize: 11),
+                    ),
                   ),
-                ),
+
+                if (getCategory(widget.note.categoryId).showTimestamps)
+                  Expanded(
+                    child: Text(
+                      getNoteCreationDateTime(widget.note.id),
+                      style: TextStyle(fontSize: 11),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
               ],
             ),
           ],
