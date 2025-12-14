@@ -4,15 +4,42 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'AppData.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
-Future<void> exportJson() async {
+Future<void> exportJson(BuildContext context) async {
+  // Make sure the widget is still mounted before doing anything
   print("export");
-  final dir = await getApplicationDocumentsDirectory();
-  final file = File('${dir.path}/appdata.json');
+  if (!context.mounted) return;
+  print("mounted");
 
-  if (await file.exists()) {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/appdata.json');
+
+    if (!await file.exists()) return;
     print("file found");
-    await Share.shareXFiles([XFile(file.path)]);
+
+    // Get the RenderBox of the button / context
+    if (!context.mounted) return; // Guard again before using box
+    final box = context.findRenderObject() as RenderBox?;
+    print("still mounted");
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      sharePositionOrigin: box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.zero,
+    );
+  } catch (e) {
+    // Optional: show error to user
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export JSON: $e')));
+    }
   }
 }
 

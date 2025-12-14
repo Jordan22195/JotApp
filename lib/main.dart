@@ -256,7 +256,10 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         title: getBannerText(),
         actions: [
-          IconButton(onPressed: exportJson, icon: Icon(Icons.download)),
+          IconButton(
+            onPressed: () => exportJson(context),
+            icon: Icon(Icons.download),
+          ),
           if (filterCategoryId != CATAGORY_FILTER_ALL &&
               filterCategoryId != CATAGORY_FILTER_UNSORTED)
             PopupMenuButton<MenuAction>(
