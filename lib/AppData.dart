@@ -38,7 +38,9 @@ class Note {
   String text;
   bool isEditing;
   bool isFavorite;
+  bool checked;
   List<String> categories = [];
+  final int noteCreationTimeMs;
 
   Note({
     String? id,
@@ -46,26 +48,61 @@ class Note {
     this.text = "",
     this.isEditing = false,
     this.isFavorite = false,
-  }) : id = id ?? uuid.v4(); // generates unique ID
+    this.checked = false,
+    int? noteCreationTimeMs,
+  }) : id = id ?? uuid.v4(),
+       noteCreationTimeMs =
+           noteCreationTimeMs ?? DateTime.now().toUtc().millisecondsSinceEpoch;
 
-  factory Note.fromJson(Map<String, dynamic> json) =>
-      Note(id: json['id'], text: json['text'], categoryId: json['categoryId']);
+  factory Note.fromJson(Map<String, dynamic> json) => Note(
+    id: json['id'] is String ? json['id'] as String : '',
+    text: json['text'] is String ? json['text'] as String : '',
+    categoryId: json['categoryId'] is String
+        ? json['categoryId'] as String
+        : '',
+    checked: json['checked'] is bool ? json['checked'] as bool : false,
+    noteCreationTimeMs: json['noteCreationTimeMs'] is int
+        ? json['noteCreationTimeMs'] as int
+        : DateTime.now().toUtc().millisecondsSinceEpoch,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'text': text,
     'categoryId': categoryId,
+    'checked': checked,
+    'noteCreationTimeMs': noteCreationTimeMs,
   };
 }
 
 class Category {
   final String id;
   final String name;
+  bool checklist = false;
+  bool showTimestamps = false;
 
-  Category({required this.id, required this.name});
+  Category({
+    required this.id,
+    required this.name,
+    this.checklist = false,
+    this.showTimestamps = false,
+  });
 
-  factory Category.fromJson(Map<String, dynamic> json) =>
-      Category(id: json['id'], name: json['name']);
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: json['id'] is String ? json['id'] as String : '',
+      name: json['name'] is String ? json['name'] as String : '',
+      checklist: json['checklist'] is bool ? json['checklist'] as bool : false,
+      showTimestamps: json['showTimestamps'] is bool
+          ? json['showTimestamps'] as bool
+          : false,
+    );
+  }
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'checklist': checklist,
+    'showTimestamps': showTimestamps,
+  };
 }

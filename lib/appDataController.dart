@@ -1,6 +1,7 @@
 import 'AppData.dart';
 import 'noteCard.dart';
 import 'dataStorage.dart';
+import 'package:intl/intl.dart';
 
 List<Note> filteredNotes = [];
 List<String> existingCategories = [];
@@ -78,4 +79,50 @@ void deleteCategory(String categoryId) {
 void createNewCategory(String name) {
   appData.categories.add(Category(id: uuid.v4(), name: name));
   saveAppData();
+}
+
+void setCategoryAsChecklist(String categoryId, bool value) {
+  for (Category c in appData.categories) {
+    if (c.id == categoryId) {
+      c.checklist = value;
+    }
+  }
+  saveAppData();
+}
+
+void setCategoryShowTimestamps(String categoryId, bool value) {
+  for (Category c in appData.categories) {
+    if (c.id == categoryId) {
+      c.showTimestamps = value;
+    }
+  }
+  saveAppData();
+}
+
+Category getCategory(String categoryId) {
+  Category ret = Category(id: "", name: "");
+  for (Category c in appData.categories) {
+    if (c.id == categoryId) {
+      return c;
+    }
+  }
+  return ret;
+}
+
+Note getNote(String noteId) {
+  Note ret = Note(id: "");
+  for (Note n in appData.notes) {
+    if (n.id == noteId) {
+      return n;
+    }
+  }
+  return ret;
+}
+
+String getNoteCreationDateTime(String noteId) {
+  Note note = getNote(noteId);
+  final int epochMs = note.noteCreationTimeMs;
+  final dateTime = DateTime.fromMillisecondsSinceEpoch(epochMs);
+  final formatted = DateFormat.yMMMd().add_jm().format(dateTime);
+  return formatted;
 }

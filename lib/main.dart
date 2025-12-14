@@ -12,6 +12,8 @@ void main() {
   );
 }
 
+enum MenuAction { toggleChecklist, toggleTimestamps }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -244,17 +246,52 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-
+        leading: IconButton(
+          icon: Icon(Icons.menu),
+          onPressed: () {
+            setState(() {
+              _openFilterPicker(context, filterCategoryId, filter: true);
+            });
+          },
+        ),
         title: getBannerText(),
         actions: [
-          IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () {
-              setState(() {
-                _openFilterPicker(context, filterCategoryId, filter: true);
-              });
-            },
-          ),
+          IconButton(onPressed: exportJson, icon: Icon(Icons.download)),
+          if (filterCategoryId != CATAGORY_FILTER_ALL &&
+              filterCategoryId != CATAGORY_FILTER_UNSORTED)
+            PopupMenuButton<MenuAction>(
+              icon: Icon(Icons.more_horiz),
+              onSelected: (action) {
+                if (action == MenuAction.toggleChecklist) {
+                  setState(() {
+                    setCategoryAsChecklist(
+                      filterCategoryId,
+                      !getCategory(filterCategoryId).checklist,
+                    );
+                  });
+                }
+                if (action == MenuAction.toggleTimestamps) {
+                  setState(() {
+                    setCategoryShowTimestamps(
+                      filterCategoryId,
+                      !getCategory(filterCategoryId).showTimestamps,
+                    );
+                  });
+                }
+              },
+              itemBuilder: (context) => [
+                CheckedPopupMenuItem(
+                  value: MenuAction.toggleChecklist,
+                  checked: getCategory(filterCategoryId).checklist,
+                  child: const Text('Checklist'),
+                ),
+                CheckedPopupMenuItem(
+                  value: MenuAction.toggleTimestamps,
+                  checked: getCategory(filterCategoryId).showTimestamps,
+                  child: const Text('Show Timestamps'),
+                ),
+              ],
+            ),
         ],
       ),
       body: Center(

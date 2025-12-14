@@ -3,6 +3,18 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'AppData.dart';
+import 'package:share_plus/share_plus.dart';
+
+Future<void> exportJson() async {
+  print("export");
+  final dir = await getApplicationDocumentsDirectory();
+  final file = File('${dir.path}/appdata.json');
+
+  if (await file.exists()) {
+    print("file found");
+    await Share.shareXFiles([XFile(file.path)]);
+  }
+}
 
 Future<void> saveAppData() async {
   print("enter save app data");

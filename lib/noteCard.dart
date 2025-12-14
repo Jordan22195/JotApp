@@ -136,16 +136,29 @@ class _NoteCardState extends State<NoteCard> {
     controller = TextEditingController(text: widget.note.text);
   }
 
-  Text getCardCategory(String categoryId) {
-    Text ret = Text("");
+  String getCardCategory(String categoryId) {
+    String ret = "";
     for (Category l in appData.categories) {
       if (l.id == categoryId) {
-        ret = Text(l.name);
+        ret = l.name;
       }
     }
     return ret;
   }
 
+  bool isNoteCheckboxCategory(String categoryId) {
+    bool ret = false;
+    for (Category c in appData.categories) {
+      if (c.id == categoryId) {
+        if (c.checklist) {
+          return true;
+        }
+      }
+    }
+    return ret;
+  }
+
+  bool testCheck = true;
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -153,52 +166,81 @@ class _NoteCardState extends State<NoteCard> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
           children: [
-            Expanded(
-              child: widget.note.isEditing
-                  ? TextField(
-                      controller: controller,
-                      autofocus: true,
-                      onChanged: (value) {
-                        widget.note.text = value;
-                      },
-                      decoration: InputDecoration(border: OutlineInputBorder()),
-                    )
-                  : Text(widget.note.text, style: TextStyle(fontSize: 16)),
-            ),
+            Row(
+              children: [
+                isNoteCheckboxCategory(widget.note.categoryId)
+                    ? Checkbox(
+                        value: testCheck,
+                        onChanged: (onChanged) {
+                          setState(() {
+                            testCheck = !testCheck;
+                          });
+                        },
+                      )
+                    : const SizedBox(width: 40),
+                Expanded(
+                  child: widget.note.isEditing
+                      ? TextField(
+                          controller: controller,
+                          autofocus: true,
+                          onChanged: (value) {
+                            widget.note.text = value;
+                          },
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
+                        )
+                      : Text(widget.note.text, style: TextStyle(fontSize: 16)),
+                ),
 
-            if (!widget.note.isEditing)
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () => setState(() => widget.note.isEditing = true),
-              ),
+                if (!widget.note.isEditing)
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () =>
+                        setState(() => widget.note.isEditing = true),
+                  ),
 
-            if (widget.note.isEditing)
-              IconButton(
-                icon: Icon(Icons.check),
-                onPressed: () {
-                  setState(() => widget.note.isEditing = false);
-                  widget.onSave(controller.text);
-                  saveAppData();
-                },
-              ),
-            if (widget.note.isEditing)
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () => setState(() {
-                  widget.onDelete(); //deleteNote(widget.note.id);
-                }),
-              ),
-            IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () => _openCategoryPicker(
-                context,
-                widget.note.categoryId,
-                note: widget.note,
-              ),
+                if (widget.note.isEditing)
+                  IconButton(
+                    icon: Icon(Icons.check),
+                    onPressed: () {
+                      setState(() => widget.note.isEditing = false);
+                      widget.onSave(controller.text);
+                      saveAppData();
+                    },
+                  ),
+                if (widget.note.isEditing)
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () => setState(() {
+                      widget.onDelete(); //deleteNote(widget.note.id);
+                    }),
+                  ),
+                IconButton(
+                  icon: Icon(Icons.menu),
+                  onPressed: () => _openCategoryPicker(
+                    context,
+                    widget.note.categoryId,
+                    note: widget.note,
+                  ),
+                ),
+              ],
             ),
-            getCardCategory(widget.note.categoryId),
+            Row(
+              children: [
+                const SizedBox(width: 40),
+                if (getCategory(widget.note.categoryId).showTimestamps)
+                  Text(getNoteCreationDateTime(widget.note.id)),
+                Expanded(
+                  child: Text(
+                    getCardCategory(widget.note.categoryId),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
