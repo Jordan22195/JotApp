@@ -172,10 +172,13 @@ class _NoteCardState extends State<NoteCard> {
               children: [
                 isNoteCheckboxCategory(widget.note.categoryId)
                     ? Checkbox(
-                        value: testCheck,
+                        value: widget.note.checked,
                         onChanged: (onChanged) {
                           setState(() {
-                            testCheck = !testCheck;
+                            setNoteChecked(
+                              widget.note.id,
+                              !widget.note.checked,
+                            );
                           });
                         },
                       )

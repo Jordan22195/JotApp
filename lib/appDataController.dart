@@ -119,6 +119,11 @@ Note getNote(String noteId) {
   return ret;
 }
 
+void setNoteChecked(String noteId, bool checked) {
+  Note n = getNote(noteId);
+  n.checked = checked;
+}
+
 String getNoteCreationDateTime(String noteId) {
   Note note = getNote(noteId);
   final int epochMs = note.noteCreationTimeMs;
