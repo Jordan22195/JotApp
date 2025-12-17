@@ -139,3 +139,9 @@ void endEditForAllNotes() {
     n.isEditing = false;
   }
 }
+
+void setCatagoryName(String id, String name) {
+  Category cat = getCategory(id);
+  cat.name = name;
+  saveAppData();
+}

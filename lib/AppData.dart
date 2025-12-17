@@ -77,7 +77,7 @@ class Note {
 
 class Category {
   final String id;
-  final String name;
+  String name;
   bool checklist = false;
   bool showTimestamps = false;
 

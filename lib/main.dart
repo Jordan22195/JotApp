@@ -102,14 +102,46 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  ListTile buildCategoryListTile(Category category, Function setSheetState) {
+    final selected = filterCategoryId == category.id;
+    final controller = TextEditingController();
+    controller.text = category.name;
+    return ListTile(
+      title: categoryEditMode
+          ? TextField(
+              controller: controller,
+              onChanged: (value) {
+                setCatagoryName(category.id, value);
+              },
+            )
+          : Text(category.name),
+      trailing: categoryEditMode
+          ? IconButton(
+              onPressed: () {
+                setState(() {
+                  deleteCategory(category.id);
+                });
+                setSheetState(() {});
+              },
+              icon: Icon(Icons.delete),
+            )
+          : selected
+          ? const Icon(Icons.check)
+          : null,
+      //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
+      onTap: () {
+        setState(() {
+          setCatagoryFilter(category.id);
+        });
+
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
   bool categoryEditMode = false;
 
-  void _openFilterPicker(
-    BuildContext context,
-    String cateogryId, {
-    bool? filter = false,
-    Note? note,
-  }) {
+  void _openFilterPicker(BuildContext context, String cateogryId) {
     categoryEditMode = false;
     showModalBottomSheet(
       context: context,
@@ -158,35 +190,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   const Divider(),
 
                   // Build the list from the parent's category's list (capture by reference)
-                  ...appData.categories.map((category) {
-                    final selected = filterCategoryId == category.id;
-                    return ListTile(
-                      title: Text(category.name),
-                      trailing: categoryEditMode
-                          ? IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  deleteCategory(category.id);
-                                });
-                                setSheetState(() {});
-                              },
-                              icon: Icon(Icons.delete),
-                            )
-                          : selected
-                          ? const Icon(Icons.check)
-                          : null,
-                      //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
-                      onTap: () {
-                        setState(() {
-                          if (filter != null && filter) {
-                            setCatagoryFilter(category.id);
-                          }
-                        });
-
-                        Navigator.of(context).pop();
-                      },
-                    );
-                  }).toList(),
+                  ...appData.categories.map(
+                    (category) =>
+                        buildCategoryListTile(category, setSheetState),
+                  ),
 
                   const Divider(),
 
@@ -250,7 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
           icon: Icon(Icons.menu),
           onPressed: () {
             setState(() {
-              _openFilterPicker(context, filterCategoryId, filter: true);
+              _openFilterPicker(context, filterCategoryId);
             });
           },
         ),

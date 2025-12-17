@@ -165,7 +165,7 @@ class _NoteCardState extends State<NoteCard> {
       );
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 0),
       child: Text(widget.note.text, style: const TextStyle(fontSize: 16)),
     );
   }
