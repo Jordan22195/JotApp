@@ -150,6 +150,86 @@ class _NoteCardState extends State<NoteCard> {
     return ret;
   }
 
+  Widget getCardTextContent() {
+    if (widget.note.isEditing) {
+      return TextField(
+        controller: controller,
+        autofocus: true,
+        maxLines: null, // ← auto grows
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
+        onChanged: (value) {
+          widget.note.text = value;
+        },
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(widget.note.text, style: const TextStyle(fontSize: 16)),
+    );
+  }
+
+  Widget buildCheckBox() {
+    if (isNoteCheckboxCategory(widget.note.categoryId)) {
+      return Checkbox(
+        value: widget.note.checked,
+        onChanged: (_) {
+          setState(() {
+            setNoteChecked(widget.note.id, !widget.note.checked);
+          });
+        },
+      );
+    }
+    return SizedBox(width: 40);
+  }
+
+  Widget buildEditIcon() {
+    if (!widget.note.isEditing) {
+      return IconButton(
+        icon: const Icon(Icons.edit),
+        onPressed: () => setState(() {
+          endEditForAllNotes();
+          widget.onSave(controller.text);
+          widget.note.isEditing = true;
+        }),
+      );
+    } else {
+      return IconButton(
+        icon: const Icon(Icons.check),
+        onPressed: () {
+          setState(() => widget.note.isEditing = false);
+          widget.onSave(controller.text);
+          saveAppData();
+        },
+      );
+    }
+  }
+
+  Widget buildCategoryPickerIcon() {
+    return IconButton(
+      icon: const Icon(Icons.menu),
+      onPressed: () {
+        _openCategoryPicker(context, widget.note.categoryId, note: widget.note);
+        setState(() {
+          widget.note.isEditing = false;
+          saveAppData();
+        });
+      },
+    );
+  }
+
+  Widget buildDeleteIcon() {
+    if (widget.note.isEditing) {
+      return IconButton(
+        icon: const Icon(Icons.delete),
+        onPressed: () => setState(widget.onDelete),
+      );
+    } else {
+      return SizedBox(width: 40);
+    }
+  }
+
   bool isNoteCheckboxCategory(String categoryId) {
     bool ret = false;
     for (Category c in appData.categories) {
@@ -167,74 +247,25 @@ class _NoteCardState extends State<NoteCard> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // TOP ROW
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                isNoteCheckboxCategory(widget.note.categoryId)
-                    ? Checkbox(
-                        value: widget.note.checked,
-                        onChanged: (onChanged) {
-                          setState(() {
-                            setNoteChecked(
-                              widget.note.id,
-                              !widget.note.checked,
-                            );
-                          });
-                        },
-                      )
-                    : const SizedBox(width: 40),
-                Expanded(
-                  child: widget.note.isEditing
-                      ? TextField(
-                          controller: controller,
-                          autofocus: true,
-                          onChanged: (value) {
-                            widget.note.text = value;
-                          },
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                          ),
-                        )
-                      : Text(widget.note.text, style: TextStyle(fontSize: 16)),
-                ),
-
-                if (!widget.note.isEditing)
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () =>
-                        setState(() => widget.note.isEditing = true),
-                  ),
-
-                if (widget.note.isEditing)
-                  IconButton(
-                    icon: Icon(Icons.check),
-                    onPressed: () {
-                      setState(() => widget.note.isEditing = false);
-                      widget.onSave(controller.text);
-                      saveAppData();
-                    },
-                  ),
-                if (widget.note.isEditing)
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => setState(() {
-                      widget.onDelete(); //deleteNote(widget.note.id);
-                    }),
-                  ),
-                IconButton(
-                  icon: Icon(Icons.menu),
-                  onPressed: () => _openCategoryPicker(
-                    context,
-                    widget.note.categoryId,
-                    note: widget.note,
-                  ),
-                ),
+                buildCheckBox(),
+                Expanded(child: getCardTextContent()),
+                if (!widget.note.isEditing) buildDeleteIcon(),
+                if (!widget.note.isEditing) buildEditIcon(),
+                if (!widget.note.isEditing) buildCategoryPickerIcon(),
               ],
             ),
+
+            // BOTTOM ROW
             Row(
               children: [
                 const SizedBox(width: 40),
@@ -244,7 +275,7 @@ class _NoteCardState extends State<NoteCard> {
                   Expanded(
                     child: Text(
                       getCardCategory(widget.note.categoryId),
-                      style: TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 11),
                     ),
                   ),
 
@@ -252,10 +283,13 @@ class _NoteCardState extends State<NoteCard> {
                   Expanded(
                     child: Text(
                       getNoteCreationDateTime(widget.note.id),
-                      style: TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 11),
                       textAlign: TextAlign.right,
                     ),
                   ),
+                if (widget.note.isEditing) buildDeleteIcon(),
+                if (widget.note.isEditing) buildEditIcon(),
+                if (widget.note.isEditing) buildCategoryPickerIcon(),
               ],
             ),
           ],

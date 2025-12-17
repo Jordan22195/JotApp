@@ -42,13 +42,11 @@ void addNewNoteCard() {
   Note n = Note(
     text: "",
     categoryId: filterCategoryId,
-    isEditing: true, // ← starts as TextField
+    isEditing: true, // starts as TextField
   );
   print("new note");
   print(n.id);
-  for (Note note in appData.notes) {
-    note.isEditing = false;
-  }
+  endEditForAllNotes();
 
   appData.notes.insert(0, n);
   saveAppData();
@@ -134,4 +132,10 @@ String getNoteCreationDateTime(String noteId) {
   final dateTime = DateTime.fromMillisecondsSinceEpoch(epochMs);
   final formatted = DateFormat.yMMMd().add_jm().format(dateTime);
   return formatted;
+}
+
+void endEditForAllNotes() {
+  for (Note n in appData.notes) {
+    n.isEditing = false;
+  }
 }
