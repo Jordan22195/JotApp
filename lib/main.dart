@@ -102,41 +102,48 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  ListTile buildCategoryListTile(Category category, Function setSheetState) {
-    final selected = filterCategoryId == category.id;
-    final controller = TextEditingController();
-    controller.text = category.name;
-    return ListTile(
-      title: categoryEditMode
-          ? TextField(
-              controller: controller,
-              onChanged: (value) {
-                setCatagoryName(category.id, value);
-              },
-            )
-          : Text(category.name),
-      trailing: categoryEditMode
-          ? IconButton(
-              onPressed: () {
-                setState(() {
-                  deleteCategory(category.id);
-                });
-                setSheetState(() {});
-              },
-              icon: Icon(Icons.delete),
-            )
-          : selected
-          ? const Icon(Icons.check)
-          : null,
-      //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
-      onTap: () {
-        setState(() {
-          setCatagoryFilter(category.id);
-        });
+  List<Widget> buildCategoryListTile(Function setSheetState) {
+    List<ListTile> tiles = [];
+    for (Category category in appData.categories) {
+      final selected = filterCategoryId == category.id;
+      final controller = TextEditingController();
+      controller.text = category.name;
 
-        Navigator.of(context).pop();
-      },
-    );
+      tiles.add(
+        ListTile(
+          title: categoryEditMode
+              ? TextField(
+                  controller: controller,
+                  onChanged: (value) {
+                    setCatagoryName(category.id, value);
+                  },
+                )
+              : Text(category.name),
+          trailing: categoryEditMode
+              ? IconButton(
+                  onPressed: () {
+                    setState(() {
+                      deleteCategory(category.id);
+                    });
+                    setSheetState(() {});
+                  },
+                  icon: Icon(Icons.delete),
+                )
+              : selected
+              ? const Icon(Icons.check)
+              : null,
+          //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
+          onTap: () {
+            setState(() {
+              setCatagoryFilter(category.id);
+            });
+
+            Navigator.of(context).pop();
+          },
+        ),
+      );
+    }
+    return tiles;
   }
 
   bool categoryEditMode = false;
@@ -184,22 +191,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
 
-                  const SizedBox(height: 8),
-                  buildUncategorizedTile(),
-                  buildAllCategoriesTile(),
-                  const Divider(),
-
-                  // Build the list from the parent's category's list (capture by reference)
-                  ...appData.categories.map(
-                    (category) =>
-                        buildCategoryListTile(category, setSheetState),
-                  ),
-
-                  const Divider(),
-
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: const Text('Create new Category'),
+                    title: const Text('Create New Category'),
                     onTap: () async {
                       // Ask for name
                       final name = await showDialog<String?>(
@@ -208,7 +202,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           final controller = TextEditingController();
                           return AlertDialog(
                             title: const Text('Create Category'),
-                            content: TextField(controller: controller),
+                            content: TextField(
+                              controller: controller,
+                              autofocus: true,
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, null),
@@ -235,8 +232,18 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     },
                   ),
-
+                  const Divider(),
                   const SizedBox(height: 8),
+                  buildUncategorizedTile(),
+                  buildAllCategoriesTile(),
+                  const Divider(),
+
+                  Expanded(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: buildCategoryListTile(setSheetState),
+                    ),
+                  ),
                 ],
               ),
             );

@@ -28,12 +28,32 @@ class NoteCard extends StatefulWidget {
 class _NoteCardState extends State<NoteCard> {
   late TextEditingController controller;
 
-  void _openCategoryPicker(
-    BuildContext context,
-    String categoryId, {
-    bool? filter = false,
-    Note? note,
-  }) {
+  List<Widget> buildCategoryListTiles(Note note) {
+    List<ListTile> tiles = [];
+    for (Category category in appData.categories) {
+      final selected = note.categoryId == category.id;
+      tiles.add(
+        ListTile(
+          title: Text(category.name),
+          trailing: selected ? const Icon(Icons.check) : null,
+          onTap: () {
+            if (note != null) {
+              setState(
+                () => setNoteCatagory(note.id, category.id),
+              ); // parent setState
+            }
+            // Assign category to note in parent state
+            // Also close the sheet (or keep open if you prefer)
+            Navigator.of(context).pop();
+          },
+        ),
+      );
+    }
+
+    return tiles;
+  }
+
+  void _openCategoryPicker(BuildContext context, Note note) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -53,30 +73,6 @@ class _NoteCardState extends State<NoteCard> {
                 children: [
                   const Text('Categories', style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 8),
-
-                  // Build the list from the parent's category's list (capture by reference)
-                  ...appData.categories.map((category) {
-                    final selected = categoryId == category.id;
-                    return ListTile(
-                      title: Text(category.name),
-                      trailing: selected ? const Icon(Icons.check) : null,
-                      onTap: () {
-                        if (filter != null && filter) {
-                          filterCategoryId = category.id;
-                        } else if (note != null) {
-                          setState(
-                            () => setNoteCatagory(note.id, category.id),
-                          ); // parent setState
-                        }
-                        // Assign category to note in parent state
-                        // Also close the sheet (or keep open if you prefer)
-                        Navigator.of(context).pop();
-                      },
-                    );
-                  }).toList(),
-
-                  const Divider(),
-
                   // Create new category tile
                   ListTile(
                     leading: const Icon(Icons.add),
@@ -124,7 +120,14 @@ class _NoteCardState extends State<NoteCard> {
                     },
                   ),
 
-                  const SizedBox(height: 8),
+                  const Divider(),
+                  // Build the list from the parent's category's list (capture by reference)
+                  Expanded(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: buildCategoryListTiles(note),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -210,7 +213,7 @@ class _NoteCardState extends State<NoteCard> {
     return IconButton(
       icon: const Icon(Icons.menu),
       onPressed: () {
-        _openCategoryPicker(context, widget.note.categoryId, note: widget.note);
+        _openCategoryPicker(context, widget.note);
         setState(() {
           widget.note.isEditing = false;
           saveAppData();
