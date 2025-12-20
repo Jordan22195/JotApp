@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      theme: ThemeData(colorScheme: ColorScheme.light()),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -50,6 +50,28 @@ class _MyHomePageState extends State<MyHomePage> {
   String latestInputText = "";
   final TextEditingController controller = TextEditingController();
 
+  late final ScrollController _scrollController;
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  void scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) {
+        debugPrint('ScrollController not attached');
+        return;
+      }
+
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   Text getBannerText() {
     Text ret = Text("");
     if (filterCategoryId == CATAGORY_FILTER_ALL) {
@@ -64,6 +86,23 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
     return ret;
+  }
+
+  Widget buildNewNoteButton() {
+    return FloatingActionButton(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      tooltip: 'New Note',
+      child: const Icon(Icons.add),
+      onPressed: () {
+        setState(() {
+          addNewNoteCard();
+          buildFilteredNotesList();
+        });
+
+        scrollToTop();
+      },
+    );
   }
 
   ListTile buildAllCategoriesTile() {
@@ -167,6 +206,8 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const SizedBox(height: 32),
+
                   Row(
                     children: [
                       Expanded(
@@ -313,42 +354,45 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: .center,
           children: [
-            FloatingActionButton(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-
-              onPressed: () {
-                setState(() {
-                  addNewNoteCard();
-                  buildFilteredNotesList();
-                });
-              },
-              tooltip: 'New Note',
-              child: const Icon(Icons.add),
-            ),
-
             Expanded(
-              child: ListView.builder(
+              child: ReorderableListView.builder(
+                scrollController: _scrollController,
                 itemCount: filteredNotes.length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex--;
+                    print("filter list: $oldIndex to $newIndex");
+                    moveNoteItemInlist(
+                      filteredNotes[newIndex].id,
+                      filteredNotes[oldIndex].id,
+                    );
+                    //if (newIndex > oldIndex) newIndex--;
+
+                    //get index in master list
+                    //calculate new index in big list based on notes around it.
+                    //do the move in the main list
+
+                    //final note = filteredNotes.removeAt(oldIndex);
+                    //filteredNotes.insert(newIndex, note);
+                  });
+                },
                 itemBuilder: (context, index) {
+                  final note = filteredNotes[index];
+
                   return NoteCard(
-                    key: ValueKey(filteredNotes[index].id),
-                    note: filteredNotes[index],
-                    startInEditMode: filteredNotes[index].isEditing,
+                    key: ValueKey(note.id), // 🔑 REQUIRED
+                    note: note,
+                    startInEditMode: note.isEditing,
                     initialText: "",
                     onSave: (newText) {
-                      setState(() => filteredNotes[index].text = newText);
+                      setState(() => note.text = newText);
                     },
                     onDelete: () {
-                      setState(() {
-                        deleteNote(filteredNotes[index].id);
-                      });
+                      setState(() => deleteNote(note.id));
                     },
                     onFavorite: () {},
+                    dragIndex: index, // 👈 pass index down
                   );
                 },
               ),
@@ -356,6 +400,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+      bottomNavigationBar: SafeArea(child: buildNewNoteButton()),
     );
   }
 }

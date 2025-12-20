@@ -6,9 +6,14 @@ AppData appData = AppData(notes: [], categories: []);
 
 class AppData {
   final List<Note> notes;
+  final Map<String, Note> noteIdMap = {};
   final List<Category> categories;
 
-  AppData({required this.notes, required this.categories});
+  AppData({required this.notes, required this.categories}) {
+    for (Note n in notes) {
+      noteIdMap[n.id] = n;
+    }
+  }
 
   factory AppData.fromJson(Map<String, dynamic> json) {
     List<dynamic> safeList(dynamic value) {

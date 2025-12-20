@@ -15,7 +15,6 @@ void setCatagoryFilter(String filterId) {
 }
 
 void setNoteCatagory(String noteId, String catagoryId) {
-  print("set note category");
   for (Note n in appData.notes) {
     if (n.id == noteId) {
       n.categoryId = catagoryId;
@@ -27,15 +26,11 @@ void setNoteCatagory(String noteId, String catagoryId) {
 void buildFilteredNotesList() {
   filteredNotes.clear();
   for (Note n in appData.notes) {
-    print('${n.categoryId} , $filterCategoryId');
     if (n.categoryId == filterCategoryId ||
         filterCategoryId == CATAGORY_FILTER_ALL) {
       filteredNotes.add(n);
     }
   }
-  print(
-    'buildFilteredNotesList  len=${filteredNotes.length} / ${appData.notes.length}',
-  );
 }
 
 void addNewNoteCard() {
@@ -44,11 +39,10 @@ void addNewNoteCard() {
     categoryId: filterCategoryId,
     isEditing: true, // starts as TextField
   );
-  print("new note");
-  print(n.id);
   endEditForAllNotes();
 
   appData.notes.insert(0, n);
+  appData.noteIdMap[n.id] = n;
   saveAppData();
 }
 
@@ -58,6 +52,7 @@ void deleteNote(String noteId) {
       appData.notes.removeAt(i);
     }
   }
+  appData.noteIdMap.remove(noteId);
   saveAppData();
 }
 
@@ -113,10 +108,8 @@ Category getCategory(String categoryId) {
 
 Note getNote(String noteId) {
   Note ret = Note(id: "");
-  for (Note n in appData.notes) {
-    if (n.id == noteId) {
-      return n;
-    }
+  if (appData.noteIdMap.containsKey(noteId)) {
+    return appData.noteIdMap[noteId]!;
   }
   return ret;
 }
@@ -144,4 +137,27 @@ void setCatagoryName(String id, String name) {
   Category cat = getCategory(id);
   cat.name = name;
   saveAppData();
+}
+
+// move note source to the index after noteIdDest
+void moveNoteItemInlist(String noteIdDest, String noteIdSource) {
+  int newIndex = getNoteIndexInList(noteIdDest);
+
+  int oldIndex = getNoteIndexInList(noteIdSource);
+  print("move item from $oldIndex to $newIndex");
+
+  appData.notes.removeAt(oldIndex);
+  appData.notes.insert(newIndex, getNote(noteIdSource));
+  saveAppData();
+}
+
+// return the index in appData.notes of the NoteId
+// returns -1 if not found
+int getNoteIndexInList(String noteId) {
+  for (int i = 0; i < appData.notes.length; i++) {
+    if (appData.notes[i].id == noteId) {
+      return i;
+    }
+  }
+  return -1;
 }

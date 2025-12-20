@@ -10,6 +10,7 @@ class NoteCard extends StatefulWidget {
   final VoidCallback onFavorite;
   final bool startInEditMode;
   final Note note;
+  final int dragIndex;
 
   NoteCard({
     required super.key,
@@ -18,6 +19,7 @@ class NoteCard extends StatefulWidget {
     required this.onSave,
     required this.onDelete,
     required this.onFavorite,
+    required this.dragIndex,
     this.startInEditMode = false,
   });
 
@@ -137,6 +139,12 @@ class _NoteCardState extends State<NoteCard> {
     );
   }
 
+  final TextStyle noteTextStyle = const TextStyle(
+    fontSize: 16,
+    height: 1.2,
+    letterSpacing: 0.0,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -157,6 +165,13 @@ class _NoteCardState extends State<NoteCard> {
     if (widget.note.isEditing) {
       return TextField(
         controller: controller,
+        style: noteTextStyle,
+        textAlignVertical: TextAlignVertical.top,
+        decoration: const InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
         autofocus: true,
         maxLines: null, // ← auto grows
         keyboardType: TextInputType.multiline,
@@ -164,13 +179,9 @@ class _NoteCardState extends State<NoteCard> {
         onChanged: (value) {
           widget.note.text = value;
         },
-        decoration: const InputDecoration(border: OutlineInputBorder()),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 0),
-      child: Text(widget.note.text, style: const TextStyle(fontSize: 16)),
-    );
+    return Text(widget.note.text, style: noteTextStyle);
   }
 
   Widget buildCheckBox() {
@@ -233,6 +244,19 @@ class _NoteCardState extends State<NoteCard> {
     }
   }
 
+  Widget buildCategoryLabel() {
+    if (filterCategoryId == CATAGORY_FILTER_ALL ||
+        filterCategoryId == CATAGORY_FILTER_UNSORTED) {
+      return Expanded(
+        child: Text(
+          getCardCategory(widget.note.categoryId),
+          style: const TextStyle(fontSize: 11),
+        ),
+      );
+    }
+    return Spacer();
+  }
+
   bool isNoteCheckboxCategory(String categoryId) {
     bool ret = false;
     for (Category c in appData.categories) {
@@ -260,11 +284,25 @@ class _NoteCardState extends State<NoteCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                buildCheckBox(),
-                Expanded(child: getCardTextContent()),
-                if (!widget.note.isEditing) buildDeleteIcon(),
-                if (!widget.note.isEditing) buildEditIcon(),
-                if (!widget.note.isEditing) buildCategoryPickerIcon(),
+                widget.note.isEditing
+                    ? const SizedBox(width: 24)
+                    : ReorderableDelayedDragStartListener(
+                        index: widget.dragIndex,
+                        child: const Icon(Icons.drag_handle),
+                      ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 0),
+                  child: buildCheckBox(),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: getCardTextContent(),
+                  ),
+                ),
+
+                buildEditIcon(),
+                buildCategoryPickerIcon(),
               ],
             ),
 
@@ -272,16 +310,7 @@ class _NoteCardState extends State<NoteCard> {
             Row(
               children: [
                 const SizedBox(width: 40),
-
-                if (filterCategoryId == CATAGORY_FILTER_ALL ||
-                    filterCategoryId == CATAGORY_FILTER_UNSORTED)
-                  Expanded(
-                    child: Text(
-                      getCardCategory(widget.note.categoryId),
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ),
-
+                buildCategoryLabel(),
                 if (getCategory(widget.note.categoryId).showTimestamps)
                   Expanded(
                     child: Text(
@@ -291,8 +320,6 @@ class _NoteCardState extends State<NoteCard> {
                     ),
                   ),
                 if (widget.note.isEditing) buildDeleteIcon(),
-                if (widget.note.isEditing) buildEditIcon(),
-                if (widget.note.isEditing) buildCategoryPickerIcon(),
               ],
             ),
           ],
