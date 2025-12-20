@@ -161,3 +161,17 @@ int getNoteIndexInList(String noteId) {
   }
   return -1;
 }
+
+void moveNoteToEndOfList(String noteId) {
+  print("move to end");
+  int oldIndex = getNoteIndexInList(noteId);
+  appData.notes.removeAt(oldIndex);
+  appData.notes.add(getNote(noteId));
+}
+
+void moveNoteToStartOfList(String noteId) {
+  print("move to start");
+  int oldIndex = getNoteIndexInList(noteId);
+  appData.notes.removeAt(oldIndex);
+  appData.notes.insert(0, getNote(noteId));
+}

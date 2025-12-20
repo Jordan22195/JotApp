@@ -392,6 +392,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() => deleteNote(note.id));
                     },
                     onFavorite: () {},
+                    onCheck: () {
+                      setState(() {});
+                    },
                     dragIndex: index, // 👈 pass index down
                   );
                 },

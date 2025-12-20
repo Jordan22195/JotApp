@@ -8,6 +8,7 @@ class NoteCard extends StatefulWidget {
   final ValueChanged<String> onSave;
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
+  final VoidCallback onCheck;
   final bool startInEditMode;
   final Note note;
   final int dragIndex;
@@ -19,6 +20,7 @@ class NoteCard extends StatefulWidget {
     required this.onSave,
     required this.onDelete,
     required this.onFavorite,
+    required this.onCheck,
     required this.dragIndex,
     this.startInEditMode = false,
   });
@@ -191,6 +193,12 @@ class _NoteCardState extends State<NoteCard> {
         onChanged: (_) {
           setState(() {
             setNoteChecked(widget.note.id, !widget.note.checked);
+            if (widget.note.checked) {
+              moveNoteToEndOfList(widget.note.id);
+            } else {
+              moveNoteToStartOfList(widget.note.id);
+            }
+            widget.onCheck();
           });
         },
       );
