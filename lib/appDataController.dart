@@ -36,7 +36,7 @@ void buildFilteredNotesList() {
 void addNewNoteCard() {
   Note n = Note(
     text: "",
-    categoryId: filterCategoryId,
+    categoryId: filterCategoryId == CATAGORY_FILTER_ALL ? "" : filterCategoryId,
     isEditing: true, // starts as TextField
   );
   endEditForAllNotes();
