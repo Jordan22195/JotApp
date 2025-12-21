@@ -11,21 +11,17 @@ import 'package:share_plus/share_plus.dart';
 
 Future<void> exportJson(BuildContext context) async {
   // Make sure the widget is still mounted before doing anything
-  print("export");
   if (!context.mounted) return;
-  print("mounted");
 
   try {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/appdata.json');
 
     if (!await file.exists()) return;
-    print("file found");
 
     // Get the RenderBox of the button / context
     if (!context.mounted) return; // Guard again before using box
     final box = context.findRenderObject() as RenderBox?;
-    print("still mounted");
 
     await Share.shareXFiles(
       [XFile(file.path)],
@@ -44,11 +40,9 @@ Future<void> exportJson(BuildContext context) async {
 }
 
 Future<void> saveAppData() async {
-  print("enter save app data");
   final dir = await getApplicationDocumentsDirectory();
   final file = File('${dir.path}/appdata.json');
 
-  print('data saved to ${dir.path}');
   final jsonString = jsonEncode(appData.toJson());
   await file.writeAsString(jsonString);
 }
@@ -56,13 +50,11 @@ Future<void> saveAppData() async {
 Future<AppData> loadAppData() async {
   final dir = await getApplicationDocumentsDirectory();
   final file = File('${dir.path}/appdata.json');
-  print("load app data");
 
   if (!file.existsSync()) {
     // Return an empty structure on first run
     return AppData(notes: [], categories: []);
   }
-  print("file found");
 
   final jsonString = await file.readAsString();
   final Map<String, dynamic> json = jsonDecode(jsonString);

@@ -144,7 +144,6 @@ void moveNoteItemInlist(String noteIdDest, String noteIdSource) {
   int newIndex = getNoteIndexInList(noteIdDest);
 
   int oldIndex = getNoteIndexInList(noteIdSource);
-  print("move item from $oldIndex to $newIndex");
 
   appData.notes.removeAt(oldIndex);
   appData.notes.insert(newIndex, getNote(noteIdSource));
@@ -163,15 +162,15 @@ int getNoteIndexInList(String noteId) {
 }
 
 void moveNoteToEndOfList(String noteId) {
-  print("move to end");
   int oldIndex = getNoteIndexInList(noteId);
   appData.notes.removeAt(oldIndex);
   appData.notes.add(getNote(noteId));
+  saveAppData();
 }
 
 void moveNoteToStartOfList(String noteId) {
-  print("move to start");
   int oldIndex = getNoteIndexInList(noteId);
   appData.notes.removeAt(oldIndex);
   appData.notes.insert(0, getNote(noteId));
+  saveAppData();
 }

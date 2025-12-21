@@ -60,7 +60,6 @@ class _MyHomePageState extends State<MyHomePage> {
   void scrollToTop() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) {
-        debugPrint('ScrollController not attached');
         return;
       }
 
@@ -362,7 +361,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) newIndex--;
-                    print("filter list: $oldIndex to $newIndex");
                     moveNoteItemInlist(
                       filteredNotes[newIndex].id,
                       filteredNotes[oldIndex].id,

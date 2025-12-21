@@ -42,9 +42,11 @@ class _NoteCardState extends State<NoteCard> {
           trailing: selected ? const Icon(Icons.check) : null,
           onTap: () {
             if (note != null) {
-              setState(
-                () => setNoteCatagory(note.id, category.id),
-              ); // parent setState
+              setState(() {
+                selected
+                    ? setNoteCatagory(note.id, CATAGORY_FILTER_UNSORTED)
+                    : setNoteCatagory(note.id, category.id);
+              }); // parent setState
             }
             // Assign category to note in parent state
             // Also close the sheet (or keep open if you prefer)
@@ -75,6 +77,8 @@ class _NoteCardState extends State<NoteCard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const SizedBox(height: 32),
+
                   const Text('Categories', style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 8),
                   // Create new category tile
@@ -198,8 +202,8 @@ class _NoteCardState extends State<NoteCard> {
             } else {
               moveNoteToStartOfList(widget.note.id);
             }
-            widget.onCheck();
           });
+          widget.onCheck();
         },
       );
     }
@@ -235,7 +239,6 @@ class _NoteCardState extends State<NoteCard> {
         _openCategoryPicker(context, widget.note);
         setState(() {
           widget.note.isEditing = false;
-          saveAppData();
         });
       },
     );
@@ -293,11 +296,12 @@ class _NoteCardState extends State<NoteCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 widget.note.isEditing
-                    ? const SizedBox(width: 24)
+                    ? const SizedBox(width: 0)
                     : ReorderableDelayedDragStartListener(
                         index: widget.dragIndex,
-                        child: const Icon(Icons.drag_handle),
+                        child: const SizedBox(width: 0),
                       ),
+
                 Padding(
                   padding: const EdgeInsets.only(top: 0),
                   child: buildCheckBox(),
