@@ -9,9 +9,11 @@ class NoteCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
   final VoidCallback onCheck;
+  final void Function(String) onCategorize;
   final bool startInEditMode;
   final Note note;
   final int dragIndex;
+  final bool animateRemoval;
 
   NoteCard({
     required super.key,
@@ -21,16 +23,76 @@ class NoteCard extends StatefulWidget {
     required this.onDelete,
     required this.onFavorite,
     required this.onCheck,
+    required this.onCategorize,
     required this.dragIndex,
+
     this.startInEditMode = false,
+    this.animateRemoval = false,
   });
 
   @override
   _NoteCardState createState() => _NoteCardState();
 }
 
-class _NoteCardState extends State<NoteCard> {
+class _NoteCardState extends State<NoteCard>
+    with SingleTickerProviderStateMixin {
   late TextEditingController controller;
+  bool categoryTapped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.note.text);
+
+    if (widget.animateRemoval) {
+      _playRemovalAnimation();
+    }
+  }
+
+  void _playRemovalAnimation() async {
+    await _controller.forward();
+    widget.onDelete();
+  }
+
+  // Call this when you want to remove the card with animation
+  void removeWithAnimation() {
+    _playRemovalAnimation();
+  }
+
+  void _playCategorizeAnimation() async {
+    await _controller.forward();
+    widget.onCategorize(newCategoryId);
+  }
+
+  // Call this when you want to remove the card with animation
+  void categorizeWithAnimation() {
+    _playCategorizeAnimation();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Animation controller for slide/fade
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+  );
+
+  late final Animation<Offset> _slideAnimation = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(1, 0), // slide to right
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+  late final Animation<double> _fadeAnimation = Tween<double>(
+    begin: 1,
+    end: 0,
+  ).animate(_controller);
+
+  String newCategoryId = "";
 
   List<Widget> buildCategoryListTiles(Note note) {
     List<ListTile> tiles = [];
@@ -43,10 +105,13 @@ class _NoteCardState extends State<NoteCard> {
           onTap: () {
             if (note != null) {
               setState(() {
+                categoryTapped = true;
+                // if a cateogy is tapped it will always change lists.
                 selected
-                    ? setNoteCatagory(note.id, CATAGORY_FILTER_UNSORTED)
-                    : setNoteCatagory(note.id, category.id);
+                    ? newCategoryId = CATAGORY_FILTER_UNSORTED
+                    : newCategoryId = category.id;
               }); // parent setState
+              widget.onCheck();
             }
             // Assign category to note in parent state
             // Also close the sheet (or keep open if you prefer)
@@ -117,7 +182,8 @@ class _NoteCardState extends State<NoteCard> {
                         setState(() {
                           String newId = createNewCategory(name);
                           if (note != null) {
-                            setNoteCatagory(note.id, newId); // parent setState
+                            categoryTapped = true;
+                            newCategoryId = newId;
                           }
                         });
 
@@ -142,7 +208,16 @@ class _NoteCardState extends State<NoteCard> {
           },
         );
       },
-    );
+    ).then((_) {
+      if (categoryTapped && filterCategoryId != CATAGORY_FILTER_ALL) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          categorizeWithAnimation();
+        });
+      } else {
+        widget.onCategorize(newCategoryId);
+      }
+      categoryTapped = false;
+    });
   }
 
   final TextStyle noteTextStyle = const TextStyle(
@@ -150,12 +225,6 @@ class _NoteCardState extends State<NoteCard> {
     height: 1.2,
     letterSpacing: 0.0,
   );
-
-  @override
-  void initState() {
-    super.initState();
-    controller = TextEditingController(text: widget.note.text);
-  }
 
   String getCardCategory(String categoryId) {
     String ret = "";
@@ -248,7 +317,7 @@ class _NoteCardState extends State<NoteCard> {
     if (widget.note.isEditing) {
       return IconButton(
         icon: const Icon(Icons.delete),
-        onPressed: () => setState(widget.onDelete),
+        onPressed: () => removeWithAnimation(),
       );
     } else {
       return SizedBox(width: 40);
@@ -283,58 +352,66 @@ class _NoteCardState extends State<NoteCard> {
   bool testCheck = true;
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // TOP ROW
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return SlideTransition(
+      position: _slideAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                widget.note.isEditing
-                    ? const SizedBox(width: 0)
-                    : ReorderableDelayedDragStartListener(
-                        index: widget.dragIndex,
-                        child: const SizedBox(width: 0),
-                      ),
+                // TOP ROW
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    widget.note.isEditing
+                        ? const SizedBox(width: 0)
+                        : ReorderableDelayedDragStartListener(
+                            index: widget.dragIndex,
+                            child: const SizedBox(width: 0),
+                          ),
 
-                Padding(
-                  padding: const EdgeInsets.only(top: 0),
-                  child: buildCheckBox(),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: getCardTextContent(),
-                  ),
-                ),
-
-                buildEditIcon(),
-                buildCategoryPickerIcon(),
-              ],
-            ),
-
-            // BOTTOM ROW
-            Row(
-              children: [
-                const SizedBox(width: 40),
-                buildCategoryLabel(),
-                if (getCategory(widget.note.categoryId).showTimestamps)
-                  Expanded(
-                    child: Text(
-                      getNoteCreationDateTime(widget.note.id),
-                      style: const TextStyle(fontSize: 11),
-                      textAlign: TextAlign.right,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 0),
+                      child: buildCheckBox(),
                     ),
-                  ),
-                if (widget.note.isEditing) buildDeleteIcon(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: getCardTextContent(),
+                      ),
+                    ),
+
+                    buildEditIcon(),
+                    buildCategoryPickerIcon(),
+                  ],
+                ),
+
+                // BOTTOM ROW
+                Row(
+                  children: [
+                    const SizedBox(width: 40),
+                    buildCategoryLabel(),
+                    if (getCategory(widget.note.categoryId).showTimestamps)
+                      Expanded(
+                        child: Text(
+                          getNoteCreationDateTime(widget.note.id),
+                          style: const TextStyle(fontSize: 11),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    if (widget.note.isEditing) buildDeleteIcon(),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

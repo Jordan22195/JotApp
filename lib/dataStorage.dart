@@ -8,6 +8,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 
 Future<void> exportJson(BuildContext context) async {
   // Make sure the widget is still mounted before doing anything
@@ -39,9 +41,33 @@ Future<void> exportJson(BuildContext context) async {
   }
 }
 
+Future<void> pickAndLoadJson(BuildContext context) async {
+  // Open file picker
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['json'],
+  );
+
+  if (result != null && result.files.single.path != null) {
+    String path = result.files.single.path!;
+    File file = File(path);
+
+    // Read the JSON content
+    String jsonString = await file.readAsString();
+    final Map<String, dynamic> json = jsonDecode(jsonString);
+
+    AppData newData = AppData.fromJson(json);
+    context.read<AppDataController>().updateData(newData);
+    saveAppData();
+  } else {
+    // User canceled the picker
+  }
+}
+
 Future<void> saveAppData() async {
   final dir = await getApplicationDocumentsDirectory();
   final file = File('${dir.path}/appdata.json');
+  print("save data to ${dir.path}");
 
   final jsonString = jsonEncode(appData.toJson());
   await file.writeAsString(jsonString);
@@ -50,6 +76,7 @@ Future<void> saveAppData() async {
 Future<AppData> loadAppData() async {
   final dir = await getApplicationDocumentsDirectory();
   final file = File('${dir.path}/appdata.json');
+  print("load data from ${dir.path}");
 
   if (!file.existsSync()) {
     // Return an empty structure on first run
@@ -67,6 +94,11 @@ class AppDataController extends ChangeNotifier {
 
   AppDataController() {
     _initialize();
+  }
+
+  void updateData(AppData newData) {
+    data = newData;
+    notifyListeners();
   }
 
   Future<void> _initialize() async {

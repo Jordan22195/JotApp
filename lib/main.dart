@@ -314,6 +314,14 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () => exportJson(context),
             icon: Icon(Icons.download),
           ),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                pickAndLoadJson(context);
+              });
+            },
+            icon: Icon(Icons.folder_open),
+          ),
           if (filterCategoryId != CATAGORY_FILTER_ALL &&
               filterCategoryId != CATAGORY_FILTER_UNSORTED)
             PopupMenuButton<MenuAction>(
@@ -387,9 +395,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() => note.text = newText);
                     },
                     onDelete: () {
-                      setState(() => deleteNote(note.id));
+                      setState(() {
+                        deleteNote(note.id);
+                      });
                     },
                     onFavorite: () {},
+                    onCategorize: (catId) {
+                      setState(() {
+                        setNoteCatagory(note.id, catId);
+                      });
+                    },
                     onCheck: () {
                       setState(() {});
                     },

@@ -8,7 +8,7 @@ List<String> existingCategories = [];
 List<NoteCard> noteCards = [];
 const String CATAGORY_FILTER_ALL = "ALL";
 const String CATAGORY_FILTER_UNSORTED = "";
-String filterCategoryId = "";
+String filterCategoryId = CATAGORY_FILTER_ALL;
 
 void setCatagoryFilter(String filterId) {
   filterCategoryId = filterId;
