@@ -88,19 +88,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildNewNoteButton() {
-    return FloatingActionButton(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      tooltip: 'New Note',
-      child: const Icon(Icons.add),
-      onPressed: () {
-        setState(() {
-          addNewNoteCard();
-          buildFilteredNotesList();
-        });
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: FloatingActionButton(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        tooltip: 'New Note',
+        child: const Icon(Icons.add),
+        onPressed: () {
+          setState(() {
+            addNewNoteCard();
+            buildFilteredNotesList();
+          });
 
-        scrollToTop();
-      },
+          scrollToTop();
+        },
+      ),
     );
   }
 
@@ -293,6 +300,24 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void nudgeListUp() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+
+      final currentOffset = _scrollController.offset;
+      const double nudgeAmount = 80; // FAB overlap buffer
+
+      _scrollController.animateTo(
+        (currentOffset + nudgeAmount).clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        ),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     appData = context.watch<AppDataController>().data;
@@ -366,6 +391,9 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ReorderableListView.builder(
                 scrollController: _scrollController,
                 itemCount: filteredNotes.length,
+                padding: const EdgeInsets.only(
+                  bottom: 128, // 👈 FAB height + breathing room
+                ),
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) newIndex--;
@@ -373,14 +401,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       filteredNotes[newIndex].id,
                       filteredNotes[oldIndex].id,
                     );
-                    //if (newIndex > oldIndex) newIndex--;
-
-                    //get index in master list
-                    //calculate new index in big list based on notes around it.
-                    //do the move in the main list
-
-                    //final note = filteredNotes.removeAt(oldIndex);
-                    //filteredNotes.insert(newIndex, note);
                   });
                 },
                 itemBuilder: (context, index) {
@@ -398,6 +418,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {
                         deleteNote(note.id);
                       });
+                    },
+                    onEdit: () {
+                      //nudgeListUp();
                     },
                     onFavorite: () {},
                     onCategorize: (catId) {

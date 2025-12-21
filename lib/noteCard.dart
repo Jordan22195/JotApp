@@ -9,6 +9,7 @@ class NoteCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
   final VoidCallback onCheck;
+  final VoidCallback onEdit;
   final void Function(String) onCategorize;
   final bool startInEditMode;
   final Note note;
@@ -23,6 +24,7 @@ class NoteCard extends StatefulWidget {
     required this.onDelete,
     required this.onFavorite,
     required this.onCheck,
+    required this.onEdit,
     required this.onCategorize,
     required this.dragIndex,
 
@@ -287,6 +289,7 @@ class _NoteCardState extends State<NoteCard>
           endEditForAllNotes();
           widget.onSave(controller.text);
           widget.note.isEditing = true;
+          widget.onEdit();
         }),
       );
     } else {
