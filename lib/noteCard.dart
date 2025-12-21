@@ -8,13 +8,14 @@ class NoteCard extends StatefulWidget {
   final ValueChanged<String> onSave;
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
-  final VoidCallback onCheck;
+  final void Function(bool) onCheck;
   final VoidCallback onEdit;
   final void Function(String) onCategorize;
   final bool startInEditMode;
   final Note note;
   final int dragIndex;
   final bool animateRemoval;
+  bool isHighlighted = true;
 
   NoteCard({
     required super.key,
@@ -113,7 +114,7 @@ class _NoteCardState extends State<NoteCard>
                     ? newCategoryId = CATAGORY_FILTER_UNSORTED
                     : newCategoryId = category.id;
               }); // parent setState
-              widget.onCheck();
+              //widget.onCheck();
             }
             // Assign category to note in parent state
             // Also close the sheet (or keep open if you prefer)
@@ -261,20 +262,28 @@ class _NoteCardState extends State<NoteCard>
     return Text(widget.note.text, style: noteTextStyle);
   }
 
+  double _opacity = 1.0;
+  bool newCheckedValue = false;
   Widget buildCheckBox() {
     if (isNoteCheckboxCategory(widget.note.categoryId)) {
       return Checkbox(
         value: widget.note.checked,
         onChanged: (_) {
+          newCheckedValue = !widget.note.checked;
+
           setState(() {
-            setNoteChecked(widget.note.id, !widget.note.checked);
-            if (widget.note.checked) {
-              moveNoteToEndOfList(widget.note.id);
-            } else {
-              moveNoteToStartOfList(widget.note.id);
-            }
+            setState(() {
+              _opacity = 0; // fade out
+              setNoteChecked(widget.note.id, newCheckedValue);
+            });
           });
-          widget.onCheck();
+          Future.delayed(const Duration(milliseconds: 400), () {
+            widget.onCheck(newCheckedValue);
+
+            setState(() {
+              _opacity = 1;
+            });
+          });
         },
       );
     }
@@ -359,60 +368,64 @@ class _NoteCardState extends State<NoteCard>
       position: _slideAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // TOP ROW
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    widget.note.isEditing
-                        ? const SizedBox(width: 0)
-                        : ReorderableDelayedDragStartListener(
-                            index: widget.dragIndex,
-                            child: const SizedBox(width: 0),
-                          ),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: _opacity,
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // TOP ROW
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      widget.note.isEditing
+                          ? const SizedBox(width: 0)
+                          : ReorderableDelayedDragStartListener(
+                              index: widget.dragIndex,
+                              child: const SizedBox(width: 0),
+                            ),
 
-                    Padding(
-                      padding: const EdgeInsets.only(top: 0),
-                      child: buildCheckBox(),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 14),
-                        child: getCardTextContent(),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0),
+                        child: buildCheckBox(),
                       ),
-                    ),
-
-                    buildEditIcon(),
-                    buildCategoryPickerIcon(),
-                  ],
-                ),
-
-                // BOTTOM ROW
-                Row(
-                  children: [
-                    const SizedBox(width: 40),
-                    buildCategoryLabel(),
-                    if (getCategory(widget.note.categoryId).showTimestamps)
                       Expanded(
-                        child: Text(
-                          getNoteCreationDateTime(widget.note.id),
-                          style: const TextStyle(fontSize: 11),
-                          textAlign: TextAlign.right,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: getCardTextContent(),
                         ),
                       ),
-                    if (widget.note.isEditing) buildDeleteIcon(),
-                  ],
-                ),
-              ],
+
+                      buildEditIcon(),
+                      buildCategoryPickerIcon(),
+                    ],
+                  ),
+
+                  // BOTTOM ROW
+                  Row(
+                    children: [
+                      const SizedBox(width: 40),
+                      buildCategoryLabel(),
+                      if (getCategory(widget.note.categoryId).showTimestamps)
+                        Expanded(
+                          child: Text(
+                            getNoteCreationDateTime(widget.note.id),
+                            style: const TextStyle(fontSize: 11),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      if (widget.note.isEditing) buildDeleteIcon(),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

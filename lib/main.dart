@@ -428,8 +428,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         setNoteCatagory(note.id, catId);
                       });
                     },
-                    onCheck: () {
-                      setState(() {});
+                    onCheck: (checked) {
+                      setState(() {
+                        if (checked) {
+                          moveNoteToEndOfList(note.id);
+                        } else {
+                          moveNoteToStartOfList(note.id);
+                        }
+                      });
                     },
                     dragIndex: index, // 👈 pass index down
                   );
