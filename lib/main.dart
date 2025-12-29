@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:notes_app/categoryMenu.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'noteCard.dart';
@@ -201,9 +202,17 @@ class _MyHomePageState extends State<MyHomePage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) {
-        // Use StatefulBuilder so we can call setState inside the sheet
-        return StatefulBuilder(
+      builder: (_) => CategoryMenu(
+        currentSelectedCategoryId: filterCategoryId,
+        onSelected: (selectedCategoryId) {
+          setState(() {
+            setCatagoryFilter(selectedCategoryId);
+          });
+        },
+      ),
+    );
+    // Use StatefulBuilder so we can call setState inside the sheet
+    /* return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
               padding: MediaQuery.of(
@@ -216,6 +225,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   Row(
                     children: [
+                      IconButton(
+                        icon: categoryEditMode
+                            ? Icon(Icons.check)
+                            : Icon(Icons.edit),
+                        onPressed: () {
+                          setState(() {
+                            categoryEditMode = !categoryEditMode;
+                          });
+                          setSheetState(() {});
+                        },
+                      ),
                       Expanded(
                         child: Center(
                           child: Text(
@@ -225,12 +245,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       IconButton(
-                        icon: categoryEditMode
-                            ? Icon(Icons.check)
-                            : Icon(Icons.edit),
+                        icon: Icon(Icons.close),
                         onPressed: () {
                           setState(() {
-                            categoryEditMode = !categoryEditMode;
+                            Navigator.pop(context);
                           });
                           setSheetState(() {});
                         },
@@ -295,9 +313,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             );
           },
-        );
-      },
-    );
+        ); */
   }
 
   void nudgeListUp() {

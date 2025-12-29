@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'AppData.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
+import 'categoryMenu.dart';
 
 class NoteCard extends StatefulWidget {
   final String initialText;
@@ -62,14 +63,14 @@ class _NoteCardState extends State<NoteCard>
     _playRemovalAnimation();
   }
 
-  void _playCategorizeAnimation() async {
+  void _playCategorizeAnimation(String newCategoryId) async {
     await _controller.forward();
     widget.onCategorize(newCategoryId);
   }
 
   // Call this when you want to remove the card with animation
-  void categorizeWithAnimation() {
-    _playCategorizeAnimation();
+  void categorizeWithAnimation(String newCategoryId) {
+    _playCategorizeAnimation(newCategoryId);
   }
 
   @override
@@ -134,9 +135,22 @@ class _NoteCardState extends State<NoteCard>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) {
-        // Use StatefulBuilder so we can call setState inside the sheet
-        return StatefulBuilder(
+      builder: (_) => CategoryMenu(
+        currentSelectedCategoryId: widget.note.categoryId,
+        onSelected: (selectedCategoryId) {
+          // card will always leave view outside of All
+          if (filterCategoryId != CATAGORY_FILTER_ALL) {
+            Future.delayed(const Duration(milliseconds: 300), () {
+              categorizeWithAnimation(selectedCategoryId);
+            });
+          } else {
+            widget.onCategorize(selectedCategoryId);
+          }
+        },
+      ),
+
+      // Use StatefulBuilder so we can call setState inside the sheet
+      /*return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
               padding: MediaQuery.of(
@@ -209,10 +223,10 @@ class _NoteCardState extends State<NoteCard>
               ),
             );
           },
-        );
-      },
+        );*/
     ).then((_) {
-      if (categoryTapped && filterCategoryId != CATAGORY_FILTER_ALL) {
+      // animate if the card is leaving the current view
+      /* if (categoryTapped && filterCategoryId != CATAGORY_FILTER_ALL) {
         Future.delayed(const Duration(milliseconds: 300), () {
           categorizeWithAnimation();
         });
@@ -220,6 +234,7 @@ class _NoteCardState extends State<NoteCard>
         widget.onCategorize(newCategoryId);
       }
       categoryTapped = false;
+      */
     });
   }
 

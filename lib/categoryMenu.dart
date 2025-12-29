@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'AppData.dart';
 import 'appDataController.dart';
 
-bool categoryEditMode = false;
-
 class CategoryMenu extends StatefulWidget {
   final String currentSelectedCategoryId;
-  final VoidCallback onSelected;
+  final void Function(String) onSelected;
+  bool categoryEditMode;
 
-  const CategoryMenu({
+  CategoryMenu({
     super.key,
     required this.currentSelectedCategoryId,
     required this.onSelected,
+    this.categoryEditMode = false,
   });
 
   @override
@@ -23,16 +23,17 @@ class _CategoryMenuState extends State<CategoryMenu> {
     bool selected = widget.currentSelectedCategoryId == CATAGORY_FILTER_ALL;
     return ListTile(
       title: Text("All Notes"),
-      trailing: categoryEditMode
+      trailing: widget.categoryEditMode
           ? null
           : selected
           ? const Icon(Icons.check)
           : null,
       onTap: () {
         setState(() {
-          setCatagoryFilter(CATAGORY_FILTER_ALL);
-          Navigator.of(context).pop();
+          widget.onSelected(CATAGORY_FILTER_ALL);
         });
+
+        Navigator.of(context).pop();
       },
     );
   }
@@ -42,16 +43,17 @@ class _CategoryMenuState extends State<CategoryMenu> {
         widget.currentSelectedCategoryId == CATAGORY_FILTER_UNSORTED;
     return ListTile(
       title: Text("Uncategorized Notes"),
-      trailing: categoryEditMode
+      trailing: widget.categoryEditMode
           ? null
           : selected
           ? const Icon(Icons.check)
           : null,
       onTap: () {
         setState(() {
-          setCatagoryFilter(CATAGORY_FILTER_UNSORTED);
-          Navigator.of(context).pop();
+          widget.onSelected(CATAGORY_FILTER_UNSORTED);
         });
+
+        Navigator.of(context).pop();
       },
     );
   }
@@ -65,7 +67,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
       tiles.add(
         ListTile(
-          title: categoryEditMode
+          title: widget.categoryEditMode
               ? TextField(
                   controller: controller,
                   onChanged: (value) {
@@ -73,7 +75,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
                   },
                 )
               : Text(category.name),
-          trailing: categoryEditMode
+          trailing: widget.categoryEditMode
               ? IconButton(
                   onPressed: () {
                     setState(() {
@@ -89,7 +91,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
           //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
           onTap: () {
             setState(() {
-              setCatagoryFilter(category.id);
+              widget.onSelected(category.id);
             });
 
             Navigator.of(context).pop();
@@ -102,7 +104,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
   @override
   Widget build(BuildContext context) {
-    categoryEditMode = false;
+    //  categoryEditMode = false;
 
     return StatefulBuilder(
       builder: (context, setSheetState) {
@@ -117,18 +119,29 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
               Row(
                 children: [
+                  IconButton(
+                    icon: widget.categoryEditMode
+                        ? Icon(Icons.check)
+                        : Icon(Icons.edit),
+                    onPressed: () {
+                      setState(() {});
+                      print("$widget.categoryEditMode");
+                      widget.categoryEditMode = !widget.categoryEditMode;
+                      print("$widget.categoryEditMode");
+
+                      setSheetState(() {});
+                    },
+                  ),
                   Expanded(
                     child: Center(
                       child: Text("Categories", style: TextStyle(fontSize: 18)),
                     ),
                   ),
                   IconButton(
-                    icon: categoryEditMode
-                        ? Icon(Icons.check)
-                        : Icon(Icons.edit),
+                    icon: Icon(Icons.close),
                     onPressed: () {
                       setState(() {
-                        categoryEditMode = !categoryEditMode;
+                        Navigator.of(context).pop();
                       });
                       setSheetState(() {});
                     },
