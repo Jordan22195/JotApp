@@ -389,6 +389,7 @@ class _NoteCardState extends State<NoteCard>
           child: Card(
             elevation: 1.5,
             surfaceTintColor: Colors.transparent,
+            color: Color(0xFFFFFFFF),
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

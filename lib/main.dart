@@ -13,7 +13,42 @@ void main() {
   );
 }
 
+enum ColorPalettes { green, brown, red }
+
+const List<Color> greenPalette = [
+  Color(0xffEBF4DD), //background
+  Color(0xff90AB8B), //app bar
+  Color(0xff5A7863), //button
+  Color(0xff3B4953),
+];
+
+const List<Color> brownPalette = [
+  Color(0xffF9F8F6),
+  Color(0xffEFE9E3),
+  Color(0xffD9CFC7),
+  Color(0xffC9B59C),
+];
+
+const List<Color> redPalette = [
+  Color(0xffE17564),
+  Color(0xffBE3144),
+  Color(0xff872341),
+  Color(0xff09122C),
+];
+
+const ColorPalettes currentPallete = ColorPalettes.green;
+
+const Map<ColorPalettes, List<Color>> colorPalettes = {
+  ColorPalettes.green: greenPalette,
+  ColorPalettes.brown: brownPalette,
+  ColorPalettes.red: redPalette,
+};
+
 enum MenuAction { saveAppData, loadAppData }
+
+Color? getColor(int index) {
+  return colorPalettes[currentPallete]?[index];
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -21,16 +56,90 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    Color c1 = greenPalette[3]; // primary
+    Color c2 = greenPalette[2]; // secondary
+    Color c3 = greenPalette[1]; // tertiary
+    Color c4 = greenPalette[0]; // background
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: const Color(0x00123458),
+        colorScheme: ColorScheme(
+          brightness: Brightness.light,
+          primary: c1,
+          onPrimary: Colors.white,
+          secondary: c2,
+          onSecondary: Colors.white,
+          tertiary: c3,
+          onTertiary: Colors.white,
 
-        //brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF1EFEC),
+          background: c4,
+          onBackground: const Color(0xFF111827),
+
+          surface: Colors.white, // or a tinted surface from your palette
+          onSurface: const Color(0xFF111827),
+
+          error: const Color(0xFFDC2626),
+          onError: Colors.white,
+
+          // These help outlines/dividers
+          outline: const Color(0xFFE5E7EB),
+          shadow: Colors.black,
+          surfaceTint: c1, // nice M3 tint behavior
+        ),
+
+        //bottom sheet
+        bottomSheetTheme: BottomSheetThemeData(backgroundColor: getColor(0)),
+        scaffoldBackgroundColor: getColor(0),
+        popupMenuTheme: PopupMenuThemeData(color: getColor(0)),
+
+        //app bar
+        appBarTheme: AppBarThemeData(
+          backgroundColor: getColor(1),
+          titleTextStyle: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 25,
+            color: Colors.black,
+          ),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return getColor(1); // checked color
+            }
+            return getColor(0); // unchecked border
+          }),
+          checkColor: WidgetStateProperty.all(Colors.black),
+          //shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+
+        //big button
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: colorPalettes[currentPallete]?[2],
+        ),
+
+        iconTheme: IconThemeData(color: getColor(3)),
+
+        iconButtonTheme: IconButtonThemeData(
+          style: ButtonStyle(
+            iconColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return getColor(1);
+              }
+              if (states.contains(WidgetState.selected)) {
+                return getColor(2); // primary
+              }
+              return getColor(3); // default
+            }),
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return getColor(0);
+              }
+              return Colors.transparent;
+            }),
+          ),
+        ),
       ),
-
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -206,7 +315,6 @@ class _MyHomePageState extends State<MyHomePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -356,11 +464,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() => buildFilteredNotesList());
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        scrolledUnderElevation: 2,
-        titleTextStyle: Theme.of(context).textTheme.titleLarge,
-
         leading: IconButton(
           icon: Icon(Icons.menu),
           onPressed: () {

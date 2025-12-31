@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'AppData.dart';
 import 'appDataController.dart';
 import 'selectableIcon.dart';
+import 'main.dart';
 
 class CategoryMenu extends StatefulWidget {
   final String currentSelectedCategoryId;
@@ -163,6 +164,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
                       final controller = TextEditingController();
                       return AlertDialog(
                         title: const Text('Create Category'),
+
                         content: Column(
                           mainAxisSize: MainAxisSize.min, // 👈 critical
                           crossAxisAlignment: CrossAxisAlignment.center,

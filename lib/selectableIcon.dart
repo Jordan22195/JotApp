@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
 
 class SelectableIconButton extends StatefulWidget {
   final IconData icon;
@@ -24,15 +25,13 @@ class _SelectableIconButtonState extends State<SelectableIconButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedColor = theme.colorScheme.primary;
+    final selectedColor = theme.iconTheme.color;
     final unselectedColor = theme.iconTheme.color ?? Colors.grey;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: isSelected
-            ? selectedColor.withOpacity(0.12)
-            : Colors.transparent,
+        color: isSelected ? getColor(0) : Colors.transparent,
         shape: BoxShape.circle,
       ),
       child: IconButton(
