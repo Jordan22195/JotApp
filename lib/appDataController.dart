@@ -14,12 +14,13 @@ void setCatagoryFilter(String filterId) {
   filterCategoryId = filterId;
 }
 
-void setNoteCatagory(String noteId, String catagoryId) {
+void setNoteCatagory(String noteId, String categoryId) {
   for (Note n in appData.notes) {
     if (n.id == noteId) {
-      n.categoryId = catagoryId;
+      n.categoryId = categoryId;
     }
   }
+  moveCategoryToTopOfList(categoryId);
   saveAppData();
 }
 
@@ -43,6 +44,10 @@ void addNewNoteCard() {
 
   appData.notes.insert(0, n);
   appData.noteIdMap[n.id] = n;
+  if (n.categoryId != CATAGORY_FILTER_ALL &&
+      n.categoryId != CATAGORY_FILTER_UNSORTED) {
+    moveCategoryToTopOfList(n.categoryId);
+  }
   saveAppData();
 }
 
@@ -71,9 +76,18 @@ void deleteCategory(String categoryId) {
 }
 
 // Returns new category Id
-String createNewCategory(String name) {
-  Category newCategory = Category(id: uuid.v4(), name: name);
-  appData.categories.add(newCategory);
+String createNewCategory(
+  String name, {
+  bool checklist = false,
+  bool timestamps = false,
+}) {
+  Category newCategory = Category(
+    id: uuid.v4(),
+    name: name,
+    checklist: checklist,
+    showTimestamps: timestamps,
+  );
+  appData.categories.insert(0, newCategory);
   saveAppData();
   return newCategory.id;
 }
@@ -106,6 +120,18 @@ Category getCategory(String categoryId) {
   return ret;
 }
 
+void moveCategoryToTopOfList(String id) {
+  for (Category c in appData.categories) {
+    if (c.id == id) {
+      Category temp = c;
+      appData.categories.remove(c);
+      appData.categories.insert(0, temp);
+    }
+  }
+
+  saveAppData();
+}
+
 Note getNote(String noteId) {
   Note ret = Note(id: "");
   if (appData.noteIdMap.containsKey(noteId)) {
@@ -117,6 +143,8 @@ Note getNote(String noteId) {
 void setNoteChecked(String noteId, bool checked) {
   Note n = getNote(noteId);
   n.checked = checked;
+  moveCategoryToTopOfList(getNote(noteId).categoryId);
+  saveAppData();
 }
 
 String getNoteCreationDateTime(String noteId) {

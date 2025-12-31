@@ -3,9 +3,9 @@ import 'package:notes_app/categoryMenu.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'noteCard.dart';
-import 'categoryPicker.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
+import 'selectableIcon.dart';
 
 void main() {
   runApp(
@@ -13,7 +13,7 @@ void main() {
   );
 }
 
-enum MenuAction { toggleChecklist, toggleTimestamps }
+enum MenuAction { saveAppData, loadAppData }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -23,7 +23,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: ColorScheme.light()),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0x00123458),
+
+        //brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF1EFEC),
+      ),
+
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -199,6 +206,7 @@ class _MyHomePageState extends State<MyHomePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -334,13 +342,25 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  bool isFilterSetToCategory() {
+    if (filterCategoryId != CATAGORY_FILTER_ALL &&
+        filterCategoryId != CATAGORY_FILTER_UNSORTED) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     appData = context.watch<AppDataController>().data;
     setState(() => buildFilteredNotesList());
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        titleTextStyle: Theme.of(context).textTheme.titleLarge,
+
         leading: IconButton(
           icon: Icon(Icons.menu),
           onPressed: () {
@@ -349,55 +369,63 @@ class _MyHomePageState extends State<MyHomePage> {
             });
           },
         ),
+        centerTitle: false,
         title: getBannerText(),
-        actions: [
-          IconButton(
-            onPressed: () => exportJson(context),
-            icon: Icon(Icons.download),
-          ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                pickAndLoadJson(context);
-              });
-            },
-            icon: Icon(Icons.folder_open),
-          ),
-          if (filterCategoryId != CATAGORY_FILTER_ALL &&
-              filterCategoryId != CATAGORY_FILTER_UNSORTED)
-            PopupMenuButton<MenuAction>(
-              icon: Icon(Icons.more_horiz),
-              onSelected: (action) {
-                if (action == MenuAction.toggleChecklist) {
-                  setState(() {
-                    setCategoryAsChecklist(
-                      filterCategoryId,
-                      !getCategory(filterCategoryId).checklist,
-                    );
-                  });
-                }
-                if (action == MenuAction.toggleTimestamps) {
-                  setState(() {
-                    setCategoryShowTimestamps(
-                      filterCategoryId,
-                      !getCategory(filterCategoryId).showTimestamps,
-                    );
-                  });
-                }
-              },
-              itemBuilder: (context) => [
-                CheckedPopupMenuItem(
-                  value: MenuAction.toggleChecklist,
-                  checked: getCategory(filterCategoryId).checklist,
-                  child: const Text('Checklist'),
-                ),
-                CheckedPopupMenuItem(
-                  value: MenuAction.toggleTimestamps,
-                  checked: getCategory(filterCategoryId).showTimestamps,
-                  child: const Text('Show Timestamps'),
-                ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isFilterSetToCategory())
+                  SelectableIconButton(
+                    icon: Icons.timer_outlined,
+                    onChanged: (val) {
+                      setState(() {
+                        setCategoryShowTimestamps(filterCategoryId, val);
+                      });
+                    },
+                  ),
+                if (isFilterSetToCategory())
+                  SelectableIconButton(
+                    onChanged: (val) {
+                      setState(() {
+                        setCategoryAsChecklist(filterCategoryId, val);
+                      });
+                    },
+                    icon: Icons.checklist,
+                  ),
               ],
             ),
+          ),
+        ),
+        actions: [
+          PopupMenuButton<MenuAction>(
+            icon: Icon(Icons.more_vert),
+            onSelected: (action) {
+              if (action == MenuAction.saveAppData) {
+                setState(() {
+                  exportJson(context);
+                });
+              }
+              if (action == MenuAction.loadAppData) {
+                setState(() {
+                  exportJson(context);
+                });
+              }
+            },
+            itemBuilder: (context) => [
+              CheckedPopupMenuItem(
+                value: MenuAction.saveAppData,
+                child: const Text('Save App Data'),
+              ),
+              CheckedPopupMenuItem(
+                value: MenuAction.loadAppData,
+                child: const Text('Load App Data'),
+              ),
+            ],
+          ),
         ],
       ),
       body: Center(

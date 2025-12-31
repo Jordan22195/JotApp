@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'AppData.dart';
 import 'appDataController.dart';
+import 'selectableIcon.dart';
 
 class CategoryMenu extends StatefulWidget {
   final String currentSelectedCategoryId;
@@ -105,6 +106,8 @@ class _CategoryMenuState extends State<CategoryMenu> {
   @override
   Widget build(BuildContext context) {
     //  categoryEditMode = false;
+    bool isNewCategoryChecklist = false;
+    bool isNewCategoryTimestamo = false;
 
     return StatefulBuilder(
       builder: (context, setSheetState) {
@@ -160,9 +163,39 @@ class _CategoryMenuState extends State<CategoryMenu> {
                       final controller = TextEditingController();
                       return AlertDialog(
                         title: const Text('Create Category'),
-                        content: TextField(
-                          controller: controller,
-                          autofocus: true,
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min, // 👈 critical
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min, // 👈 critical
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: controller,
+                                    autofocus: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                SelectableIconButton(
+                                  icon: Icons.checklist,
+                                  onChanged: (value) {
+                                    isNewCategoryChecklist = value;
+                                  },
+                                ),
+                                SelectableIconButton(
+                                  icon: Icons.timer_outlined,
+                                  onChanged: (value) {
+                                    isNewCategoryTimestamo = value;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         actions: [
                           TextButton(
@@ -183,8 +216,14 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
                   if (name != null && name.isNotEmpty) {
                     setState(() {
-                      createNewCategory(name);
+                      String id = createNewCategory(
+                        name,
+                        checklist: isNewCategoryChecklist,
+                        timestamps: isNewCategoryTimestamo,
+                      );
                       setSheetState(() {});
+                      widget.onSelected(id);
+                      Navigator.of(context).pop();
                     });
                   }
                 },

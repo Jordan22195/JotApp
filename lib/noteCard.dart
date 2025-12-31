@@ -387,10 +387,13 @@ class _NoteCardState extends State<NoteCard>
           duration: const Duration(milliseconds: 300),
           opacity: _opacity,
           child: Card(
-            elevation: 2,
+            elevation: 1.5,
+            surfaceTintColor: Colors.transparent,
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(16),
             ),
+
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
