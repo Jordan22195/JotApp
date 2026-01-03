@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
@@ -42,6 +43,7 @@ class _NoteCardState extends State<NoteCard>
     with SingleTickerProviderStateMixin {
   late TextEditingController controller;
   bool categoryTapped = false;
+  late AppDataController dataController;
 
   @override
   void initState() {
@@ -100,7 +102,7 @@ class _NoteCardState extends State<NoteCard>
 
   List<Widget> buildCategoryListTiles(Note note) {
     List<ListTile> tiles = [];
-    for (Category category in appData.categories) {
+    for (Category category in dataController.data.categories) {
       final selected = note.categoryId == category.id;
       tiles.add(
         ListTile(
@@ -148,94 +150,7 @@ class _NoteCardState extends State<NoteCard>
           }
         },
       ),
-
-      // Use StatefulBuilder so we can call setState inside the sheet
-      /*return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-              padding: MediaQuery.of(
-                context,
-              ).viewInsets.add(const EdgeInsets.all(16)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 32),
-
-                  const Text('Categories', style: TextStyle(fontSize: 18)),
-                  const SizedBox(height: 8),
-                  // Create new category tile
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: const Text('Create New Category'),
-                    onTap: () async {
-                      // Ask for name
-                      final name = await showDialog<String?>(
-                        context: context,
-                        builder: (context) {
-                          final controller = TextEditingController();
-                          return AlertDialog(
-                            title: const Text('Create Category'),
-                            content: TextField(controller: controller),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, null),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  final txt = controller.text.trim();
-                                  if (txt.isNotEmpty)
-                                    Navigator.pop(context, txt);
-                                },
-                                child: const Text('Create'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-
-                      if (name != null && name.isNotEmpty) {
-                        // 1) Add to parent category list
-                        setState(() {
-                          String newId = createNewCategory(name);
-                          if (note != null) {
-                            categoryTapped = true;
-                            newCategoryId = newId;
-                          }
-                        });
-
-                        // 2) Also update the sheet's UI immediately
-                        setSheetState(() {});
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  ),
-
-                  const Divider(),
-                  // Build the list from the parent's category's list (capture by reference)
-                  Expanded(
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: buildCategoryListTiles(note),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );*/
-    ).then((_) {
-      // animate if the card is leaving the current view
-      /* if (categoryTapped && filterCategoryId != CATAGORY_FILTER_ALL) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          categorizeWithAnimation();
-        });
-      } else {
-        widget.onCategorize(newCategoryId);
-      }
-      categoryTapped = false;
-      */
-    });
+    ).then((_) {});
   }
 
   final TextStyle noteTextStyle = const TextStyle(
@@ -246,7 +161,7 @@ class _NoteCardState extends State<NoteCard>
 
   String getCardCategory(String categoryId) {
     String ret = "";
-    for (Category l in appData.categories) {
+    for (Category l in dataController.data.categories) {
       if (l.id == categoryId) {
         ret = l.name;
       }
@@ -289,7 +204,7 @@ class _NoteCardState extends State<NoteCard>
           setState(() {
             setState(() {
               _opacity = 0; // fade out
-              setNoteChecked(widget.note.id, newCheckedValue);
+              dataController.setNoteChecked(widget.note.id, newCheckedValue);
             });
           });
           Future.delayed(const Duration(milliseconds: 400), () {
@@ -309,12 +224,12 @@ class _NoteCardState extends State<NoteCard>
     if (!widget.note.isEditing) {
       return IconButton(
         icon: const Icon(Icons.edit),
-        onPressed: () => setState(() {
-          endEditForAllNotes();
+        onPressed: () {
+          dataController.endEditForAllNotes();
           widget.onSave(controller.text);
           widget.note.isEditing = true;
           widget.onEdit();
-        }),
+        },
       );
     } else {
       return IconButton(
@@ -322,7 +237,6 @@ class _NoteCardState extends State<NoteCard>
         onPressed: () {
           setState(() => widget.note.isEditing = false);
           widget.onSave(controller.text);
-          saveAppData();
         },
       );
     }
@@ -366,7 +280,7 @@ class _NoteCardState extends State<NoteCard>
 
   bool isNoteCheckboxCategory(String categoryId) {
     bool ret = false;
-    for (Category c in appData.categories) {
+    for (Category c in dataController.data.categories) {
       if (c.id == categoryId) {
         if (c.checklist) {
           return true;
@@ -379,6 +293,8 @@ class _NoteCardState extends State<NoteCard>
   bool testCheck = true;
   @override
   Widget build(BuildContext context) {
+    dataController = context.watch<AppDataController>();
+
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -432,10 +348,14 @@ class _NoteCardState extends State<NoteCard>
                     children: [
                       const SizedBox(width: 40),
                       buildCategoryLabel(),
-                      if (getCategory(widget.note.categoryId).showTimestamps)
+                      if (dataController
+                          .getCategory(widget.note.categoryId)
+                          .showTimestamps)
                         Expanded(
                           child: Text(
-                            getNoteCreationDateTime(widget.note.id),
+                            dataController.getNoteCreationDateTime(
+                              widget.note.id,
+                            ),
                             style: const TextStyle(fontSize: 11),
                             textAlign: TextAlign.right,
                           ),

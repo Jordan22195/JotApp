@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:notes_app/categoryMenu.dart';
+import 'package:notes_app/fileListener.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'noteCard.dart';
@@ -168,6 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController controller = TextEditingController();
 
   late final ScrollController _scrollController;
+  late AppDataController dataController;
   @override
   void initState() {
     super.initState();
@@ -195,7 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else if (filterCategoryId == CATAGORY_FILTER_UNSORTED) {
       ret = Text("Uncategorized Notes");
     } else {
-      for (Category l in appData.categories) {
+      for (Category l in dataController.data.categories) {
         if (l.id == filterCategoryId) {
           ret = Text(l.name);
         }
@@ -217,10 +219,8 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'New Note',
         child: const Icon(Icons.add),
         onPressed: () {
-          setState(() {
-            addNewNoteCard();
-            buildFilteredNotesList();
-          });
+          dataController.addNewNoteCard();
+          dataController.buildFilteredNotesList();
 
           scrollToTop();
         },
@@ -228,90 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  ListTile buildAllCategoriesTile() {
-    bool selected = filterCategoryId == CATAGORY_FILTER_ALL;
-    return ListTile(
-      title: Text("All Notes"),
-      trailing: categoryEditMode
-          ? null
-          : selected
-          ? const Icon(Icons.check)
-          : null,
-      onTap: () {
-        setState(() {
-          setCatagoryFilter(CATAGORY_FILTER_ALL);
-          Navigator.of(context).pop();
-        });
-      },
-    );
-  }
-
-  ListTile buildUncategorizedTile() {
-    bool selected = filterCategoryId == CATAGORY_FILTER_UNSORTED;
-    return ListTile(
-      title: Text("Uncategorized Notes"),
-      trailing: categoryEditMode
-          ? null
-          : selected
-          ? const Icon(Icons.check)
-          : null,
-      onTap: () {
-        setState(() {
-          setCatagoryFilter(CATAGORY_FILTER_UNSORTED);
-          Navigator.of(context).pop();
-        });
-      },
-    );
-  }
-
-  List<Widget> buildCategoryListTile(Function setSheetState) {
-    List<ListTile> tiles = [];
-    for (Category category in appData.categories) {
-      final selected = filterCategoryId == category.id;
-      final controller = TextEditingController();
-      controller.text = category.name;
-
-      tiles.add(
-        ListTile(
-          title: categoryEditMode
-              ? TextField(
-                  controller: controller,
-                  onChanged: (value) {
-                    setCatagoryName(category.id, value);
-                  },
-                )
-              : Text(category.name),
-          trailing: categoryEditMode
-              ? IconButton(
-                  onPressed: () {
-                    setState(() {
-                      deleteCategory(category.id);
-                    });
-                    setSheetState(() {});
-                  },
-                  icon: Icon(Icons.delete),
-                )
-              : selected
-              ? const Icon(Icons.check)
-              : null,
-          //   trailing: categoryEditMode ? {selected ? const Icon(Icons.check) : null} : const IconButton(icon: Icon(Icons.delete))
-          onTap: () {
-            setState(() {
-              setCatagoryFilter(category.id);
-            });
-
-            Navigator.of(context).pop();
-          },
-        ),
-      );
-    }
-    return tiles;
-  }
-
-  bool categoryEditMode = false;
-
   void _openFilterPicker(BuildContext context, String cateogryId) {
-    categoryEditMode = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -327,109 +244,6 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
-    // Use StatefulBuilder so we can call setState inside the sheet
-    /* return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-              padding: MediaQuery.of(
-                context,
-              ).viewInsets.add(const EdgeInsets.all(16)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 32),
-
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: categoryEditMode
-                            ? Icon(Icons.check)
-                            : Icon(Icons.edit),
-                        onPressed: () {
-                          setState(() {
-                            categoryEditMode = !categoryEditMode;
-                          });
-                          setSheetState(() {});
-                        },
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            "Categories",
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            Navigator.pop(context);
-                          });
-                          setSheetState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: const Text('Create New Category'),
-                    onTap: () async {
-                      // Ask for name
-                      final name = await showDialog<String?>(
-                        context: context,
-                        builder: (context) {
-                          final controller = TextEditingController();
-                          return AlertDialog(
-                            title: const Text('Create Category'),
-                            content: TextField(
-                              controller: controller,
-                              autofocus: true,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, null),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  final txt = controller.text.trim();
-                                  if (txt.isNotEmpty)
-                                    Navigator.pop(context, txt);
-                                },
-                                child: const Text('Create'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-
-                      if (name != null && name.isNotEmpty) {
-                        setState(() {
-                          createNewCategory(name);
-                          setSheetState(() {});
-                        });
-                      }
-                    },
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  buildUncategorizedTile(),
-                  buildAllCategoriesTile(),
-                  const Divider(),
-
-                  Expanded(
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: buildCategoryListTile(setSheetState),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ); */
   }
 
   void nudgeListUp() {
@@ -460,139 +274,142 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    appData = context.watch<AppDataController>().data;
-    setState(() => buildFilteredNotesList());
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.menu),
-          onPressed: () {
-            setState(() {
+    dataController = context.watch<AppDataController>();
+    setState(() => dataController.buildFilteredNotesList());
+    return JotFileListener(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () {
               _openFilterPicker(context, filterCategoryId);
-            });
-          },
-        ),
-        centerTitle: false,
-        title: getBannerText(),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (isFilterSetToCategory())
-                  SelectableIconButton(
-                    icon: Icons.timer_outlined,
-                    onChanged: (val) {
-                      setState(() {
-                        setCategoryShowTimestamps(filterCategoryId, val);
-                      });
-                    },
-                  ),
-                if (isFilterSetToCategory())
-                  SelectableIconButton(
-                    onChanged: (val) {
-                      setState(() {
-                        setCategoryAsChecklist(filterCategoryId, val);
-                      });
-                    },
-                    icon: Icons.checklist,
-                  ),
-              ],
+            },
+          ),
+          centerTitle: false,
+          title: getBannerText(),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (isFilterSetToCategory())
+                    SelectableIconButton(
+                      icon: Icons.timer_outlined,
+                      selected: dataController
+                          .getCategory(filterCategoryId)
+                          .showTimestamps,
+                      onChanged: (val) {
+                        dataController.setCategoryShowTimestamps(
+                          filterCategoryId,
+                          val,
+                        );
+                      },
+                    ),
+                  if (isFilterSetToCategory())
+                    SelectableIconButton(
+                      selected: dataController
+                          .getCategory(filterCategoryId)
+                          .checklist,
+
+                      onChanged: (val) {
+                        dataController.setCategoryAsChecklist(
+                          filterCategoryId,
+                          val,
+                        );
+                      },
+                      icon: Icons.checklist,
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          PopupMenuButton<MenuAction>(
-            icon: Icon(Icons.more_vert),
-            onSelected: (action) {
-              if (action == MenuAction.saveAppData) {
-                setState(() {
-                  exportJson(context);
-                });
-              }
-              if (action == MenuAction.loadAppData) {
-                setState(() {
-                  exportJson(context);
-                });
-              }
-            },
-            itemBuilder: (context) => [
-              CheckedPopupMenuItem(
-                value: MenuAction.saveAppData,
-                child: const Text('Save App Data'),
-              ),
-              CheckedPopupMenuItem(
-                value: MenuAction.loadAppData,
-                child: const Text('Load App Data'),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          children: [
-            Expanded(
-              child: ReorderableListView.builder(
-                scrollController: _scrollController,
-                itemCount: filteredNotes.length,
-                padding: const EdgeInsets.only(
-                  bottom: 128, // 👈 FAB height + breathing room
+          actions: [
+            IconButton(
+              onPressed: () {
+                exportJotFileAndShare(
+                  context,
+                  payload: dataController.categoryToJson(filterCategoryId),
+                  baseFileName: dataController.getCategoryName(
+                    filterCategoryId,
+                  ),
+                );
+              },
+              icon: Icon(Icons.ios_share),
+            ),
+            PopupMenuButton<MenuAction>(
+              icon: Icon(Icons.more_vert),
+              onSelected: (action) {
+                if (action == MenuAction.loadAppData) {
+                  pickAndLoadJson(context);
+                }
+              },
+              itemBuilder: (context) => [
+                CheckedPopupMenuItem(
+                  value: MenuAction.loadAppData,
+                  child: const Text('Load App Data'),
                 ),
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) newIndex--;
-                    moveNoteItemInlist(
-                      filteredNotes[newIndex].id,
-                      filteredNotes[oldIndex].id,
-                    );
-                  });
-                },
-                itemBuilder: (context, index) {
-                  final note = filteredNotes[index];
-
-                  return NoteCard(
-                    key: ValueKey(note.id), // 🔑 REQUIRED
-                    note: note,
-                    startInEditMode: note.isEditing,
-                    initialText: "",
-                    onSave: (newText) {
-                      setState(() => note.text = newText);
-                    },
-                    onDelete: () {
-                      setState(() {
-                        deleteNote(note.id);
-                      });
-                    },
-                    onEdit: () {
-                      //nudgeListUp();
-                    },
-                    onFavorite: () {},
-                    onCategorize: (catId) {
-                      setState(() {
-                        setNoteCatagory(note.id, catId);
-                      });
-                    },
-                    onCheck: (checked) {
-                      setState(() {
-                        if (checked) {
-                          moveNoteToEndOfList(note.id);
-                        } else {
-                          moveNoteToStartOfList(note.id);
-                        }
-                      });
-                    },
-                    dragIndex: index, // 👈 pass index down
-                  );
-                },
-              ),
+              ],
             ),
           ],
         ),
+        body: Center(
+          child: Column(
+            children: [
+              Expanded(
+                child: ReorderableListView.builder(
+                  scrollController: _scrollController,
+                  itemCount: filteredNotes.length,
+                  padding: const EdgeInsets.only(
+                    bottom: 128, // 👈 FAB height + breathing room
+                  ),
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    dataController.moveNoteItemInlist(
+                      filteredNotes[newIndex].id,
+                      filteredNotes[oldIndex].id,
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    final note = filteredNotes[index];
+
+                    return NoteCard(
+                      key: ValueKey(note.id), // 🔑 REQUIRED
+                      note: note,
+                      startInEditMode: note.isEditing,
+                      initialText: "",
+                      onSave: (newText) {
+                        setState(() => note.text = newText);
+                      },
+                      onDelete: () {
+                        dataController.deleteNote(note.id);
+                      },
+                      onEdit: () {},
+                      onFavorite: () {},
+                      onCategorize: (catId) {
+                        dataController.setNoteCatagory(note.id, catId);
+                        String name = dataController.getCategoryName(catId);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Moved Note to $name'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      onCheck: (checked) {
+                        dataController.sortCheckedList(filterCategoryId);
+                      },
+                      dragIndex: index, // 👈 pass index down
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: SafeArea(child: buildNewNoteButton()),
       ),
-      bottomNavigationBar: SafeArea(child: buildNewNoteButton()),
     );
   }
 }

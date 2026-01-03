@@ -6,10 +6,12 @@ class SelectableIconButton extends StatefulWidget {
   final double size;
   final EdgeInsets padding;
   final ValueChanged<bool>? onChanged;
+  final bool selected;
 
   const SelectableIconButton({
     super.key,
     required this.icon,
+    required this.selected,
     this.size = 24,
     this.padding = const EdgeInsets.all(8),
     this.onChanged,
@@ -35,6 +37,7 @@ class _SelectableIconButtonState extends State<SelectableIconButton> {
         shape: BoxShape.circle,
       ),
       child: IconButton(
+        isSelected: widget.selected,
         icon: Icon(
           widget.icon,
           color: isSelected ? selectedColor : unselectedColor,

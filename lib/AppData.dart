@@ -1,19 +1,29 @@
+import 'dart:ffi';
+
+import 'package:notes_app/appDataController.dart';
 import 'package:uuid/uuid.dart';
 
 var uuid = Uuid();
 
-AppData appData = AppData(notes: [], categories: []);
-
 class AppData {
   final List<Note> notes;
-  final Map<String, Note> noteIdMap = {};
+  Map<String, Note> noteIdMap = {};
   final List<Category> categories;
+  Map<String, Category> categoryIdMap = {};
 
   AppData({required this.notes, required this.categories}) {
     for (Note n in notes) {
       noteIdMap[n.id] = n;
     }
+    for (Category c in categories) {
+      categoryIdMap[c.id] = c;
+    }
   }
+
+  Map<String, dynamic> toJson() => {
+    'notes': notes.map((n) => n.toJson()).toList(),
+    'categories': categories.map((c) => c.toJson()).toList(),
+  };
 
   factory AppData.fromJson(Map<String, dynamic> json) {
     List<dynamic> safeList(dynamic value) {
@@ -30,11 +40,6 @@ class AppData {
       ).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
-
-  Map<String, dynamic> toJson() => {
-    'notes': notes.map((n) => n.toJson()).toList(),
-    'categories': categories.map((c) => c.toJson()).toList(),
-  };
 }
 
 class Note {

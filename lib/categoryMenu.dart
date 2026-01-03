@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'appDataController.dart';
 import 'selectableIcon.dart';
@@ -62,7 +63,9 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
   List<Widget> buildCategoryListTile(Function setSheetState) {
     List<ListTile> tiles = [];
-    for (Category category in appData.categories) {
+    final dataController = context.watch<AppDataController>();
+    final data = dataController.data;
+    for (Category category in data.categories) {
       final selected = widget.currentSelectedCategoryId == category.id;
       final controller = TextEditingController();
       controller.text = category.name;
@@ -73,16 +76,14 @@ class _CategoryMenuState extends State<CategoryMenu> {
               ? TextField(
                   controller: controller,
                   onChanged: (value) {
-                    setCatagoryName(category.id, value);
+                    dataController.setCatagoryName(category.id, value);
                   },
                 )
               : Text(category.name),
           trailing: widget.categoryEditMode
               ? IconButton(
                   onPressed: () {
-                    setState(() {
-                      deleteCategory(category.id);
-                    });
+                    dataController.deleteCategory(category.id);
                     setSheetState(() {});
                   },
                   icon: Icon(Icons.delete),
@@ -106,9 +107,9 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
   @override
   Widget build(BuildContext context) {
-    //  categoryEditMode = false;
     bool isNewCategoryChecklist = false;
     bool isNewCategoryTimestamo = false;
+    final dataController = context.watch<AppDataController>();
 
     return StatefulBuilder(
       builder: (context, setSheetState) {
@@ -129,9 +130,8 @@ class _CategoryMenuState extends State<CategoryMenu> {
                         : Icon(Icons.edit),
                     onPressed: () {
                       setState(() {});
-                      print("$widget.categoryEditMode");
+
                       widget.categoryEditMode = !widget.categoryEditMode;
-                      print("$widget.categoryEditMode");
 
                       setSheetState(() {});
                     },
@@ -144,9 +144,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
                   IconButton(
                     icon: Icon(Icons.close),
                     onPressed: () {
-                      setState(() {
-                        Navigator.of(context).pop();
-                      });
+                      Navigator.of(context).pop();
                       setSheetState(() {});
                     },
                   ),
@@ -166,11 +164,11 @@ class _CategoryMenuState extends State<CategoryMenu> {
                         title: const Text('Create Category'),
 
                         content: Column(
-                          mainAxisSize: MainAxisSize.min, // 👈 critical
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Row(
-                              mainAxisSize: MainAxisSize.min, // 👈 critical
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Expanded(
@@ -184,12 +182,14 @@ class _CategoryMenuState extends State<CategoryMenu> {
                             Row(
                               children: [
                                 SelectableIconButton(
+                                  selected: false,
                                   icon: Icons.checklist,
                                   onChanged: (value) {
                                     isNewCategoryChecklist = value;
                                   },
                                 ),
                                 SelectableIconButton(
+                                  selected: false,
                                   icon: Icons.timer_outlined,
                                   onChanged: (value) {
                                     isNewCategoryTimestamo = value;
@@ -217,16 +217,14 @@ class _CategoryMenuState extends State<CategoryMenu> {
                   );
 
                   if (name != null && name.isNotEmpty) {
-                    setState(() {
-                      String id = createNewCategory(
-                        name,
-                        checklist: isNewCategoryChecklist,
-                        timestamps: isNewCategoryTimestamo,
-                      );
-                      setSheetState(() {});
-                      widget.onSelected(id);
-                      Navigator.of(context).pop();
-                    });
+                    String id = dataController.createNewCategory(
+                      name,
+                      checklist: isNewCategoryChecklist,
+                      timestamps: isNewCategoryTimestamo,
+                    );
+                    setSheetState(() {});
+                    widget.onSelected(id);
+                    Navigator.of(context).pop();
                   }
                 },
               ),
