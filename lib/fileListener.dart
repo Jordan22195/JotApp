@@ -27,7 +27,6 @@ class _JotFileListenerState extends State<JotFileListener> {
   @override
   void initState() {
     super.initState();
-    print("init state");
     // While running
     _sub = ReceiveSharingIntent.instance.getMediaStream().listen(_handleFiles);
 
@@ -40,13 +39,11 @@ class _JotFileListenerState extends State<JotFileListener> {
   Future<void> _handleInitial() async {
     if (_handledInitial) return;
     _handledInitial = true;
-    print("handle initial");
     final files = await ReceiveSharingIntent.instance.getInitialMedia();
     await _handleFiles(files);
   }
 
   Future<void> _handleFiles(List<SharedMediaFile> files) async {
-    print("handle files");
     if (files.isEmpty) return;
 
     final controller = context.read<AppDataController>();
@@ -57,12 +54,10 @@ class _JotFileListenerState extends State<JotFileListener> {
 
       if (!path.toLowerCase().endsWith('.jot')) continue;
 
-      print("handle files path: $path");
       File file = File(path);
 
       String jsonString = await file.readAsString();
       final Map<String, dynamic> json = jsonDecode(jsonString);
-      print("json decoded");
 
       try {
         await controller.appendAppDataFromJson(json);

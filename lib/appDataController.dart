@@ -248,10 +248,7 @@ class AppDataController extends ChangeNotifier {
   void moveCategoryToTopOfList(String id) {
     for (Category c in _data.categories) {
       if (c.id == id) {
-        print("move cat");
-        print("${c.name} ${c.checklist}");
         Category temp = c;
-        print("${temp.name} ${temp.checklist}");
         _data.categories.remove(c);
         _data.categories.insert(0, temp);
       }

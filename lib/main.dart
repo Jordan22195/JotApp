@@ -207,6 +207,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildNoteFinshEditButton() {
+    bool hasText = noteEditText.isNotEmpty;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
@@ -218,19 +219,42 @@ class _MyHomePageState extends State<MyHomePage> {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         tooltip: 'New Note',
-        child: const Icon(Icons.check),
+        child: hasText ? Icon(Icons.check) : Icon(Icons.close),
         onPressed: () {
           setState(() {
-            noteInEditMode = false;
-            print("save button");
-            print(noteEditText);
-            dataController.getNote(noteIdInEditMode).isEditing = false;
-            dataController.setNoteText(noteIdInEditMode, noteEditText);
+            if (hasText) {
+              noteInEditMode = false;
+              dataController.getNote(noteIdInEditMode).isEditing = false;
+              dataController.setNoteText(noteIdInEditMode, noteEditText);
+            } else {
+              dataController.deleteNote(noteIdInEditMode);
+              noteInEditMode = false;
+            }
           });
 
           //setState(
           //    () => dataController.getNote(noteIdInEditMode).text = noteEditText,
           //   );
+        },
+      ),
+    );
+  }
+
+  Widget buildNoteDeleteButton() {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: FloatingActionButton(
+        backgroundColor: getColor(1),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        tooltip: 'New Note',
+        child: const Icon(Icons.delete),
+        onPressed: () {
+          setState(() {});
         },
       ),
     );
@@ -416,16 +440,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       startInEditMode: note.isEditing,
                       initialText: "",
                       onSave: (newText) {
-                        print(newText);
                         noteEditText = newText;
                         setState(() => note.text = newText);
-                        print(noteEditText);
                       },
                       onDelete: () {
                         dataController.deleteNote(note.id);
                         setState(() {
                           noteInEditMode = false;
                         });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Note Deleted'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
                       },
                       onEdit: () {},
                       onFavorite: () {},

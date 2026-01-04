@@ -87,7 +87,7 @@ class _NoteCardState extends State<NoteCard>
   // Animation controller for slide/fade
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 300),
+    duration: const Duration(milliseconds: 100),
   );
 
   late final Animation<Offset> _slideAnimation = Tween<Offset>(
@@ -356,7 +356,7 @@ class _NoteCardState extends State<NoteCard>
                     // BOTTOM ROW
                     Row(
                       children: [
-                        const SizedBox(width: 40),
+                        const SizedBox(width: 10),
                         buildCategoryLabel(),
                         if (dataController
                             .getCategory(widget.note.categoryId)
