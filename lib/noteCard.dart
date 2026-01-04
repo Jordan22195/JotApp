@@ -10,6 +10,7 @@ class NoteCard extends StatefulWidget {
   final ValueChanged<String> onSave;
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
+  final VoidCallback onTap;
   final void Function(bool) onCheck;
   final VoidCallback onEdit;
   final void Function(String) onCategorize;
@@ -26,6 +27,7 @@ class NoteCard extends StatefulWidget {
     required this.onSave,
     required this.onDelete,
     required this.onFavorite,
+    required this.onTap,
     required this.onCheck,
     required this.onEdit,
     required this.onCategorize,
@@ -186,10 +188,11 @@ class _NoteCardState extends State<NoteCard>
         textInputAction: TextInputAction.newline,
         onChanged: (value) {
           widget.note.text = value;
+          widget.onSave(value);
         },
       );
     }
-    return Text(widget.note.text, style: noteTextStyle);
+    return Text(widget.note.text, style: noteTextStyle, maxLines: 6);
   }
 
   double _opacity = 1.0;
@@ -217,7 +220,7 @@ class _NoteCardState extends State<NoteCard>
         },
       );
     }
-    return SizedBox(width: 40);
+    return SizedBox(width: 10);
   }
 
   Widget buildEditIcon() {
@@ -310,60 +313,68 @@ class _NoteCardState extends State<NoteCard>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            child: InkWell(
+              onTap: () {
+                widget.onTap();
+                dataController.endEditForAllNotes();
+                widget.onSave(controller.text);
+                widget.note.isEditing = true;
+                widget.onEdit();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // TOP ROW
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        widget.note.isEditing
+                            ? const SizedBox(width: 0)
+                            : ReorderableDelayedDragStartListener(
+                                index: widget.dragIndex,
+                                child: const SizedBox(width: 0),
+                              ),
 
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // TOP ROW
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      widget.note.isEditing
-                          ? const SizedBox(width: 0)
-                          : ReorderableDelayedDragStartListener(
-                              index: widget.dragIndex,
-                              child: const SizedBox(width: 0),
-                            ),
-
-                      Padding(
-                        padding: const EdgeInsets.only(top: 0),
-                        child: buildCheckBox(),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: getCardTextContent(),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 0),
+                          child: buildCheckBox(),
                         ),
-                      ),
-
-                      buildEditIcon(),
-                      buildCategoryPickerIcon(),
-                    ],
-                  ),
-
-                  // BOTTOM ROW
-                  Row(
-                    children: [
-                      const SizedBox(width: 40),
-                      buildCategoryLabel(),
-                      if (dataController
-                          .getCategory(widget.note.categoryId)
-                          .showTimestamps)
                         Expanded(
-                          child: Text(
-                            dataController.getNoteCreationDateTime(
-                              widget.note.id,
-                            ),
-                            style: const TextStyle(fontSize: 11),
-                            textAlign: TextAlign.right,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: getCardTextContent(),
                           ),
                         ),
-                      if (widget.note.isEditing) buildDeleteIcon(),
-                    ],
-                  ),
-                ],
+
+                        //buildEditIcon(),
+                        buildCategoryPickerIcon(),
+                      ],
+                    ),
+
+                    // BOTTOM ROW
+                    Row(
+                      children: [
+                        const SizedBox(width: 40),
+                        buildCategoryLabel(),
+                        if (dataController
+                            .getCategory(widget.note.categoryId)
+                            .showTimestamps)
+                          Expanded(
+                            child: Text(
+                              dataController.getNoteCreationDateTime(
+                                widget.note.id,
+                              ),
+                              style: const TextStyle(fontSize: 11),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        if (widget.note.isEditing) buildDeleteIcon(),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

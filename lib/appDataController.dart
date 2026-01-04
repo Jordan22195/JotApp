@@ -138,11 +138,7 @@ class AppDataController extends ChangeNotifier {
   }
 
   void setNoteCatagory(String noteId, String categoryId) {
-    for (Note n in _data.notes) {
-      if (n.id == noteId) {
-        n.categoryId = categoryId;
-      }
-    }
+    getNote(noteId).categoryId = categoryId;
     moveCategoryToTopOfList(categoryId);
     saveAppData(_data);
     notifyListeners();
@@ -158,7 +154,7 @@ class AppDataController extends ChangeNotifier {
     }
   }
 
-  void addNewNoteCard() {
+  String addNewNoteCard() {
     Note n = Note(
       text: "",
       categoryId: filterCategoryId == CATAGORY_FILTER_ALL
@@ -176,6 +172,7 @@ class AppDataController extends ChangeNotifier {
     }
     saveAppData(_data);
     notifyListeners();
+    return n.id;
   }
 
   void deleteNote(String noteId) {
@@ -225,11 +222,7 @@ class AppDataController extends ChangeNotifier {
   }
 
   void setCategoryAsChecklist(String categoryId, bool value) {
-    for (Category c in _data.categories) {
-      if (c.id == categoryId) {
-        c.checklist = value;
-      }
-    }
+    getCategory(categoryId).checklist = value;
     saveAppData(_data);
     notifyListeners();
   }
@@ -255,7 +248,10 @@ class AppDataController extends ChangeNotifier {
   void moveCategoryToTopOfList(String id) {
     for (Category c in _data.categories) {
       if (c.id == id) {
+        print("move cat");
+        print("${c.name} ${c.checklist}");
         Category temp = c;
+        print("${temp.name} ${temp.checklist}");
         _data.categories.remove(c);
         _data.categories.insert(0, temp);
       }
@@ -271,6 +267,13 @@ class AppDataController extends ChangeNotifier {
       return _data.noteIdMap[noteId]!;
     }
     return ret;
+  }
+
+  void setNoteText(String noteId, String text) {
+    Note n = getNote(noteId);
+    n.text = text;
+    saveAppData(_data);
+    notifyListeners();
   }
 
   void setNoteChecked(String noteId, bool checked) {
@@ -293,6 +296,8 @@ class AppDataController extends ChangeNotifier {
     for (Note n in _data.notes) {
       n.isEditing = false;
     }
+    saveAppData(_data);
+    notifyListeners();
   }
 
   void setCatagoryName(String id, String name) {

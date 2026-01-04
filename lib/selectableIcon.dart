@@ -33,20 +33,20 @@ class _SelectableIconButtonState extends State<SelectableIconButton> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: isSelected ? getColor(0) : Colors.transparent,
+        color: widget.selected ? getColor(0) : Colors.transparent,
         shape: BoxShape.circle,
       ),
       child: IconButton(
         isSelected: widget.selected,
         icon: Icon(
           widget.icon,
-          color: isSelected ? selectedColor : unselectedColor,
+          color: widget.selected ? selectedColor : unselectedColor,
           size: widget.size,
         ),
         padding: widget.padding,
         onPressed: () {
-          setState(() => isSelected = !isSelected);
-          widget.onChanged?.call(isSelected);
+          //setState(() => isSelected = !isSelected);
+          widget.onChanged?.call(!widget.selected);
         },
       ),
     );

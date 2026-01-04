@@ -11,15 +11,25 @@
     <key>CFBundleTypeName</key>
     <string>Jot Notes Export</string>
 
+    <key>CFBundleTypeRole</key>
+    <string>Viewer</string>
+    <key>CFBundleTypeExtensions</key>
+    <array>
+      <string>jot</string>
+    </array>
+
     <key>LSItemContentTypes</key>
     <array>
-      <string>com.yourcompany.jot.export</string>
+      <string>com.jordanroth.jot.export</string>
+      <!-- optional compatibility -->
+      <string>public.json</string>
     </array>
 
     <key>LSHandlerRank</key>
     <string>Owner</string>
   </dict>
 </array>
+
 
 <key>UTExportedTypeDeclarations</key>
 <array>

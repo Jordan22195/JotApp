@@ -97,6 +97,7 @@ Future<void> loadJson(BuildContext context, String path) async {
   // Read the JSON content
   String jsonString = await file.readAsString();
   final Map<String, dynamic> json = jsonDecode(jsonString);
+  print("json decoded");
 
   if (!context.mounted) return;
 

@@ -206,6 +206,36 @@ class _MyHomePageState extends State<MyHomePage> {
     return ret;
   }
 
+  Widget buildNoteFinshEditButton() {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: FloatingActionButton(
+        backgroundColor: getColor(1),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        tooltip: 'New Note',
+        child: const Icon(Icons.check),
+        onPressed: () {
+          setState(() {
+            noteInEditMode = false;
+            print("save button");
+            print(noteEditText);
+            dataController.getNote(noteIdInEditMode).isEditing = false;
+            dataController.setNoteText(noteIdInEditMode, noteEditText);
+          });
+
+          //setState(
+          //    () => dataController.getNote(noteIdInEditMode).text = noteEditText,
+          //   );
+        },
+      ),
+    );
+  }
+
   Widget buildNewNoteButton() {
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
@@ -219,8 +249,10 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'New Note',
         child: const Icon(Icons.add),
         onPressed: () {
-          dataController.addNewNoteCard();
+          String id = dataController.addNewNoteCard();
           dataController.buildFilteredNotesList();
+          noteIdInEditMode = id;
+          noteInEditMode = true;
 
           scrollToTop();
         },
@@ -271,6 +303,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     return false;
   }
+
+  bool noteInEditMode = false;
+  String noteIdInEditMode = "";
+  String noteEditText = "";
 
   @override
   Widget build(BuildContext context) {
@@ -380,14 +416,23 @@ class _MyHomePageState extends State<MyHomePage> {
                       startInEditMode: note.isEditing,
                       initialText: "",
                       onSave: (newText) {
+                        print(newText);
+                        noteEditText = newText;
                         setState(() => note.text = newText);
+                        print(noteEditText);
                       },
                       onDelete: () {
                         dataController.deleteNote(note.id);
+                        setState(() {
+                          noteInEditMode = false;
+                        });
                       },
                       onEdit: () {},
                       onFavorite: () {},
                       onCategorize: (catId) {
+                        setState(() {
+                          noteInEditMode = false;
+                        });
                         dataController.setNoteCatagory(note.id, catId);
                         String name = dataController.getCategoryName(catId);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -400,6 +445,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       onCheck: (checked) {
                         dataController.sortCheckedList(filterCategoryId);
                       },
+                      onTap: () {
+                        setState(() {
+                          noteInEditMode = true;
+                          noteIdInEditMode = note.id;
+                        });
+                      },
                       dragIndex: index, // 👈 pass index down
                     );
                   },
@@ -408,7 +459,14 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
-        bottomNavigationBar: SafeArea(child: buildNewNoteButton()),
+        bottomNavigationBar: SafeArea(
+          child: Row(
+            children: [
+              Expanded(child: buildNewNoteButton()),
+              if (noteInEditMode) buildNoteFinshEditButton(),
+            ],
+          ),
+        ),
       ),
     );
   }

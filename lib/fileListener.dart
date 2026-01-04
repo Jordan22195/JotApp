@@ -1,14 +1,20 @@
 import 'dart:async';
-import 'package:notes_app/dataStorage.dart';
-
-import 'appDataController.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'appDataController.dart';
+import 'dart:io';
+import 'dart:convert';
 
 class JotFileListener extends StatefulWidget {
   final Widget child;
-  const JotFileListener({super.key, required this.child});
+  //final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+
+  const JotFileListener({
+    super.key,
+    required this.child,
+    //required this.scaffoldMessengerKey,
+  });
 
   @override
   State<JotFileListener> createState() => _JotFileListenerState();
@@ -21,52 +27,62 @@ class _JotFileListenerState extends State<JotFileListener> {
   @override
   void initState() {
     super.initState();
+    print("init state");
+    // While running
+    _sub = ReceiveSharingIntent.instance.getMediaStream().listen(_handleFiles);
 
-    // Files shared while app is running
-    _sub = ReceiveSharingIntent.instance.getMediaStream().listen((files) {
-      _handleFiles(files);
+    // Cold start: wait until the widget tree is mounted + first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleInitial();
     });
-
-    // Files that launched the app (cold start)
-    _handleInitial();
   }
 
   Future<void> _handleInitial() async {
     if (_handledInitial) return;
     _handledInitial = true;
-
+    print("handle initial");
     final files = await ReceiveSharingIntent.instance.getInitialMedia();
     await _handleFiles(files);
   }
 
   Future<void> _handleFiles(List<SharedMediaFile> files) async {
+    print("handle files");
     if (files.isEmpty) return;
 
-    // We use read() (not watch) because we don't want rebuilds; we just want to act.
+    final controller = context.read<AppDataController>();
 
     for (final f in files) {
       final path = f.path;
       if (path.isEmpty) continue;
 
-      // Only handle .jot
       if (!path.toLowerCase().endsWith('.jot')) continue;
 
-      try {
-        await loadJson(context, path);
+      print("handle files path: $path");
+      File file = File(path);
 
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Imported Jot file')));
+      String jsonString = await file.readAsString();
+      final Map<String, dynamic> json = jsonDecode(jsonString);
+      print("json decoded");
+
+      try {
+        await controller.appendAppDataFromJson(json);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Imported Jot file'),
+            duration: Duration(seconds: 1),
+          ),
+        );
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Import failed: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     }
 
-    // Important: clear the intent so it doesn't re-import on resume
     ReceiveSharingIntent.instance.reset();
   }
 
