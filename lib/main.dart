@@ -274,7 +274,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.add),
         onPressed: () {
           String id = dataController.addNewNoteCard();
-          dataController.buildFilteredNotesList();
           noteIdInEditMode = id;
           noteInEditMode = true;
 
@@ -328,6 +327,176 @@ class _MyHomePageState extends State<MyHomePage> {
     return false;
   }
 
+  bool showChecked = true;
+  Widget buildNoteCardList() {
+    List<Note> uncheckedNotes = [];
+    List<Note> checkedNotes = [];
+    setState(() {
+      uncheckedNotes = dataController.buildFilteredNotesList(
+        filterCategoryId,
+        false,
+      );
+      checkedNotes = dataController.buildFilteredNotesList(
+        filterCategoryId,
+        true,
+      );
+    });
+
+    final dividerIndex = uncheckedNotes.length;
+    final toggleIndex = uncheckedNotes.length + 1;
+    final checkedStartIndex = uncheckedNotes.length + 2;
+
+    final itemCount =
+        uncheckedNotes.length + 2 + (showChecked ? checkedNotes.length : 0);
+
+    bool isNoteIndex(int i) =>
+        i < dividerIndex || (showChecked && i >= checkedStartIndex);
+
+    Note noteForIndex(int i) {
+      if (i < dividerIndex) return uncheckedNotes[i];
+      // checked section
+      return checkedNotes[i - checkedStartIndex];
+    }
+
+    // Prevent moving a note across divider / toggle rows
+    bool inUncheckedSection(int i) => i < dividerIndex;
+    bool inCheckedSection(int i) => showChecked && i >= checkedStartIndex;
+
+    return Expanded(
+      child: ReorderableListView.builder(
+        scrollController: _scrollController,
+        itemCount: itemCount,
+        padding: const EdgeInsets.only(
+          bottom: 128, // 👈 FAB height + breathing room
+        ),
+        onReorder: (oldIndex, newIndex) {
+          // ReorderableListView reports the "drop" index as if the item was removed.
+          if (newIndex > oldIndex) newIndex -= 1;
+
+          // Only allow note->note moves, not onto divider/toggle
+          if (!isNoteIndex(oldIndex)) return;
+
+          // If user tries to drop onto divider/toggle, clamp into same section.
+          if (!isNoteIndex(newIndex)) {
+            if (inUncheckedSection(oldIndex)) {
+              newIndex = (newIndex <= dividerIndex)
+                  ? (dividerIndex - 1).clamp(0, dividerIndex - 1)
+                  : dividerIndex - 1;
+            } else {
+              // checked section
+              newIndex = checkedStartIndex;
+            }
+          }
+
+          // Disallow crossing sections
+          if (inUncheckedSection(oldIndex) && !inUncheckedSection(newIndex)) {
+            return;
+          }
+          if (inCheckedSection(oldIndex) && !inCheckedSection(newIndex)) return;
+
+          setState(() {
+            // Apply reorder within the appropriate sublist
+            if (inUncheckedSection(oldIndex)) {
+              dataController.moveNoteItemInlist(
+                uncheckedNotes[oldIndex].id,
+                uncheckedNotes[newIndex].id,
+              );
+            } else {
+              dataController.moveNoteItemInlist(
+                checkedNotes[oldIndex].id,
+                checkedNotes[newIndex].id,
+              );
+            }
+          });
+        },
+        itemBuilder: (context, index) {
+          // Divider row
+          if (index == dividerIndex) {
+            if (checkedNotes.isEmpty) {
+              return SizedBox(key: ValueKey('divider_placeholder'), width: 0);
+            }
+            return ListTile(
+              key: const ValueKey('__checked_divider__'),
+              title: const Divider(),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            );
+          }
+
+          // Toggle row
+          if (index == toggleIndex) {
+            if (checkedNotes.isEmpty) {
+              return SizedBox(
+                key: ValueKey('toggle_row_placeholder'),
+                width: 0,
+              );
+            }
+            return ListTile(
+              key: const ValueKey('__checked_toggle__'),
+              title: Text(
+                showChecked ? 'Checked' : 'Checked (${checkedNotes.length})',
+              ),
+              trailing: TextButton(
+                onPressed: () => setState(() => showChecked = !showChecked),
+                child: Text(showChecked ? 'Hide' : 'Show'),
+              ),
+            );
+          }
+
+          final note = noteForIndex(index);
+
+          return NoteCard(
+            key: ValueKey(note.id), // 🔑 REQUIRED
+            note: note,
+            startInEditMode: note.isEditing,
+            initialText: "",
+            onSave: (newText) {
+              noteEditText = newText;
+              setState(() => note.text = newText);
+            },
+            onDelete: () {
+              dataController.deleteNote(note.id);
+              setState(() {
+                noteInEditMode = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Note Deleted'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            onEdit: () {},
+            onFavorite: () {},
+            onCategorize: (catId) {
+              setState(() {
+                noteInEditMode = false;
+              });
+              dataController.setNoteCatagory(note.id, catId);
+              String name = dataController.getCategoryName(catId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Moved Note to $name'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            onCheck: (checked) {
+              dataController.sortCheckedList(filterCategoryId);
+            },
+            onTap: () {
+              setState(() {
+                noteInEditMode = true;
+                noteIdInEditMode = note.id;
+              });
+            },
+            dragIndex: index, // 👈 pass index down
+          );
+        },
+      ),
+    );
+  }
+
   bool noteInEditMode = false;
   String noteIdInEditMode = "";
   String noteEditText = "";
@@ -335,7 +504,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     dataController = context.watch<AppDataController>();
-    setState(() => dataController.buildFilteredNotesList());
+
     return JotFileListener(
       child: Scaffold(
         appBar: AppBar(
@@ -414,79 +583,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
-        body: Center(
-          child: Column(
-            children: [
-              Expanded(
-                child: ReorderableListView.builder(
-                  scrollController: _scrollController,
-                  itemCount: filteredNotes.length,
-                  padding: const EdgeInsets.only(
-                    bottom: 128, // 👈 FAB height + breathing room
-                  ),
-                  onReorder: (oldIndex, newIndex) {
-                    if (newIndex > oldIndex) newIndex--;
-                    dataController.moveNoteItemInlist(
-                      filteredNotes[newIndex].id,
-                      filteredNotes[oldIndex].id,
-                    );
-                  },
-                  itemBuilder: (context, index) {
-                    final note = filteredNotes[index];
-
-                    return NoteCard(
-                      key: ValueKey(note.id), // 🔑 REQUIRED
-                      note: note,
-                      startInEditMode: note.isEditing,
-                      initialText: "",
-                      onSave: (newText) {
-                        noteEditText = newText;
-                        setState(() => note.text = newText);
-                      },
-                      onDelete: () {
-                        dataController.deleteNote(note.id);
-                        setState(() {
-                          noteInEditMode = false;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Note Deleted'),
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                      onEdit: () {},
-                      onFavorite: () {},
-                      onCategorize: (catId) {
-                        setState(() {
-                          noteInEditMode = false;
-                        });
-                        dataController.setNoteCatagory(note.id, catId);
-                        String name = dataController.getCategoryName(catId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Moved Note to $name'),
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                      onCheck: (checked) {
-                        dataController.sortCheckedList(filterCategoryId);
-                      },
-                      onTap: () {
-                        setState(() {
-                          noteInEditMode = true;
-                          noteIdInEditMode = note.id;
-                        });
-                      },
-                      dragIndex: index, // 👈 pass index down
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+        body: Center(child: Column(children: [buildNoteCardList()])),
         bottomNavigationBar: SafeArea(
           child: Row(
             children: [

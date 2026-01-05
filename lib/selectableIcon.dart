@@ -46,6 +46,7 @@ class _SelectableIconButtonState extends State<SelectableIconButton> {
         padding: widget.padding,
         onPressed: () {
           //setState(() => isSelected = !isSelected);
+          setState(() {});
           widget.onChanged?.call(!widget.selected);
         },
       ),

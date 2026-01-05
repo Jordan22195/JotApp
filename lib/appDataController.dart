@@ -144,14 +144,31 @@ class AppDataController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void buildFilteredNotesList() {
-    filteredNotes.clear();
-    for (Note n in _data.notes) {
-      if (n.categoryId == filterCategoryId ||
-          filterCategoryId == CATAGORY_FILTER_ALL) {
-        filteredNotes.add(n);
+  List<Note> buildFilteredNotesList(String categoryId, bool checked) {
+    List<Note> list = [];
+    //if category is not checklist get all items if you want unchecked items
+    if (!getCategory(categoryId).checklist) {
+      //if category is not checklist and want checked items
+
+      if (checked) {
+        return list;
+      }
+      for (Note n in _data.notes) {
+        if (n.categoryId == categoryId ||
+            filterCategoryId == CATAGORY_FILTER_ALL) {
+          list.add(n);
+        }
+      }
+      //if category is checklist, return checked/unchecked item
+    } else {
+      for (Note n in _data.notes) {
+        if (n.categoryId == categoryId && n.checked == checked) {
+          list.add(n);
+        }
       }
     }
+
+    return list;
   }
 
   String addNewNoteCard() {
@@ -255,7 +272,7 @@ class AppDataController extends ChangeNotifier {
     }
 
     saveAppData(_data);
-    notifyListeners();
+    // notifyListeners();
   }
 
   Note getNote(String noteId) {
@@ -278,7 +295,6 @@ class AppDataController extends ChangeNotifier {
     n.checked = checked;
     moveCategoryToTopOfList(getNote(noteId).categoryId);
     saveAppData(_data);
-    notifyListeners();
   }
 
   String getNoteCreationDateTime(String noteId) {

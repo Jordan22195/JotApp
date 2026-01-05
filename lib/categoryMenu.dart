@@ -5,6 +5,9 @@ import 'appDataController.dart';
 import 'selectableIcon.dart';
 import 'main.dart';
 
+bool isNewCategoryChecklist = false;
+bool isNewCategoryTimestamo = false;
+
 class CategoryMenu extends StatefulWidget {
   final String currentSelectedCategoryId;
   final void Function(String) onSelected;
@@ -104,8 +107,6 @@ class _CategoryMenuState extends State<CategoryMenu> {
     return tiles;
   }
 
-  bool isNewCategoryChecklist = false;
-  bool isNewCategoryTimestamo = false;
   @override
   Widget build(BuildContext context) {
     final dataController = context.watch<AppDataController>();
@@ -147,7 +148,9 @@ class _CategoryMenuState extends State<CategoryMenu> {
                     icon: Icon(Icons.close),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      setSheetState(() {});
+                      setSheetState(() {
+                        CategoryMenu.categoryEditMode = false;
+                      });
                     },
                   ),
                 ],
@@ -157,65 +160,75 @@ class _CategoryMenuState extends State<CategoryMenu> {
                 leading: const Icon(Icons.add),
                 title: const Text('Create New Category'),
                 onTap: () async {
+                  isNewCategoryChecklist = false;
+                  isNewCategoryTimestamo = false;
                   // Ask for name
                   final name = await showDialog<String?>(
                     context: context,
                     builder: (context) {
                       final controller = TextEditingController();
-                      return AlertDialog(
-                        title: const Text('Create Category'),
 
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
+                      return StatefulBuilder(
+                        builder: (context, setDialogState) {
+                          return AlertDialog(
+                            title: const Text('Create Category'),
+
+                            content: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: controller,
-                                    autofocus: true,
-                                  ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: controller,
+                                        autofocus: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    SelectableIconButton(
+                                      selected: isNewCategoryChecklist,
+                                      icon: Icons.checklist,
+                                      onChanged: (value) {
+                                        setDialogState(() {
+                                          isNewCategoryChecklist = value;
+                                        });
+                                      },
+                                    ),
+                                    SelectableIconButton(
+                                      selected: isNewCategoryTimestamo,
+                                      icon: Icons.timer_outlined,
+                                      onChanged: (value) {
+                                        setDialogState(() {
+                                          isNewCategoryTimestamo = value;
+                                        });
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                SelectableIconButton(
-                                  selected: isNewCategoryChecklist,
-                                  icon: Icons.checklist,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      isNewCategoryChecklist = value;
-                                    });
-                                  },
-                                ),
-                                SelectableIconButton(
-                                  selected: isNewCategoryTimestamo,
-                                  icon: Icons.timer_outlined,
-                                  onChanged: (value) {
-                                    isNewCategoryTimestamo = value;
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, null),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              final txt = controller.text.trim();
-                              if (txt.isNotEmpty) Navigator.pop(context, txt);
-                            },
-                            child: const Text('Create'),
-                          ),
-                        ],
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, null),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  final txt = controller.text.trim();
+                                  if (txt.isNotEmpty)
+                                    Navigator.pop(context, txt);
+                                },
+                                child: const Text('Create'),
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   );

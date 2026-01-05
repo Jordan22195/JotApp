@@ -88,7 +88,7 @@ class _NoteCardState extends State<NoteCard>
   // Animation controller for slide/fade
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 100),
+    duration: const Duration(milliseconds: 250),
   );
 
   late final Animation<Offset> _slideAnimation = Tween<Offset>(
@@ -145,8 +145,13 @@ class _NoteCardState extends State<NoteCard>
         onSelected: (selectedCategoryId) {
           // card will always leave view outside of All
           if (filterCategoryId != CATAGORY_FILTER_ALL) {
-            Future.delayed(const Duration(milliseconds: 300), () {
-              categorizeWithAnimation(selectedCategoryId);
+            Future.delayed(const Duration(milliseconds: 200), () {
+              if (selectedCategoryId == filterCategoryId ||
+                  selectedCategoryId == CATAGORY_FILTER_ALL) {
+                categorizeWithAnimation(CATAGORY_FILTER_UNSORTED);
+              } else {
+                categorizeWithAnimation(selectedCategoryId);
+              }
             });
           } else {
             widget.onCategorize(selectedCategoryId);
@@ -233,7 +238,7 @@ class _NoteCardState extends State<NoteCard>
               dataController.setNoteChecked(widget.note.id, newCheckedValue);
             });
           });
-          Future.delayed(const Duration(milliseconds: 400), () {
+          Future.delayed(const Duration(milliseconds: 250), () {
             widget.onCheck(newCheckedValue);
 
             setState(() {
@@ -292,8 +297,10 @@ class _NoteCardState extends State<NoteCard>
   }
 
   Widget buildExpandIcon() {
+    double widgetWidth = 1;
+    IconButton button;
     if (cardTextOverflow && !cardStateExpanded) {
-      return IconButton(
+      button = IconButton(
         icon: const Icon(Icons.expand_more),
         onPressed: () {
           setState(() {
@@ -302,7 +309,7 @@ class _NoteCardState extends State<NoteCard>
         },
       );
     } else if (cardStateExpanded) {
-      return IconButton(
+      button = IconButton(
         icon: const Icon(Icons.expand_less_outlined),
         onPressed: () {
           setState(() {
@@ -311,34 +318,41 @@ class _NoteCardState extends State<NoteCard>
         },
       );
     } else {
-      return SizedBox(width: 40);
+      return SizedBox(width: widgetWidth);
     }
+    return SizedBox(width: widgetWidth, child: button);
   }
 
   Widget buildCategoryLabel() {
+    double textWidth = 120;
     if (filterCategoryId == CATAGORY_FILTER_ALL ||
         filterCategoryId == CATAGORY_FILTER_UNSORTED) {
-      return Expanded(
+      return SizedBox(
+        width: textWidth,
         child: Text(
           getCardCategory(widget.note.categoryId),
           style: const TextStyle(fontSize: 11),
         ),
       );
     }
-    return SizedBox(width: 0);
+    return SizedBox(width: textWidth);
   }
 
   Widget buildTimestampLabel() {
+    double widgetWidth = 80;
     if (dataController.getCategory(widget.note.categoryId).showTimestamps) {
       // return Expanded(
-      return Text(
-        dataController.getNoteCreationDateTime(widget.note.id),
-        style: const TextStyle(fontSize: 11),
-        textAlign: TextAlign.right,
+      return SizedBox(
+        width: widgetWidth,
+        child: Text(
+          dataController.getNoteCreationDateTime(widget.note.id),
+          style: const TextStyle(fontSize: 11),
+          textAlign: TextAlign.right,
+        ),
       );
       //  );
     }
-    return SizedBox(width: 0);
+    return SizedBox(width: widgetWidth);
   }
 
   bool isNoteCheckboxCategory(String categoryId) {
@@ -380,6 +394,9 @@ class _NoteCardState extends State<NoteCard>
                 widget.onSave(controller.text);
                 widget.note.isEditing = true;
                 widget.onEdit();
+                if (cardTextOverflow) {
+                  cardStateExpanded = true;
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -416,11 +433,11 @@ class _NoteCardState extends State<NoteCard>
 
                               // optional footer row
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   buildCategoryLabel(),
-                                  const Spacer(),
-                                  buildExpandIcon(),
-                                  Spacer(),
+                                  Expanded(child: buildExpandIcon()),
                                   buildTimestampLabel(),
                                 ],
                               ),
@@ -438,7 +455,10 @@ class _NoteCardState extends State<NoteCard>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [buildCategoryPickerIcon()],
+                        children: [
+                          buildCategoryPickerIcon(),
+                          buildDeleteIcon(),
+                        ],
                       ),
                     ),
                   ],
