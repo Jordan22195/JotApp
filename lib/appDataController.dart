@@ -285,7 +285,7 @@ class AppDataController extends ChangeNotifier {
     Note note = getNote(noteId);
     final int epochMs = note.noteCreationTimeMs;
     final dateTime = DateTime.fromMillisecondsSinceEpoch(epochMs);
-    final formatted = DateFormat.yMMMd().add_jm().format(dateTime);
+    final formatted = DateFormat.yMMMd().format(dateTime);
     return formatted;
   }
 
@@ -382,6 +382,11 @@ class AppDataController extends ChangeNotifier {
     int oldIndex = getNoteIndexInList(noteId);
     _data.notes.removeAt(oldIndex);
     _data.notes.insert(0, getNote(noteId));
+    saveAppData(_data);
+    notifyListeners();
+  }
+
+  void commitData() {
     saveAppData(_data);
     notifyListeners();
   }

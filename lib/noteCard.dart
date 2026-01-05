@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'dataStorage.dart';
@@ -171,7 +172,9 @@ class _NoteCardState extends State<NoteCard>
     return ret;
   }
 
-  Widget getCardTextContent() {
+  bool cardTextOverflow = false;
+  bool cardStateExpanded = false;
+  Widget getCardTextContent(constraints) {
     if (widget.note.isEditing) {
       return TextField(
         controller: controller,
@@ -192,7 +195,27 @@ class _NoteCardState extends State<NoteCard>
         },
       );
     }
-    return Text(widget.note.text, style: noteTextStyle, maxLines: 6);
+
+    if (cardStateExpanded) {
+      return Text(widget.note.text, style: noteTextStyle);
+    }
+
+    final t = Text(
+      widget.note.text,
+      style: noteTextStyle,
+      maxLines: 6,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: widget.note.text, style: noteTextStyle),
+      maxLines: 6,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: constraints.maxWidth);
+
+    cardTextOverflow = textPainter.didExceedMaxLines;
+
+    return t;
   }
 
   double _opacity = 1.0;
@@ -268,6 +291,30 @@ class _NoteCardState extends State<NoteCard>
     }
   }
 
+  Widget buildExpandIcon() {
+    if (cardTextOverflow && !cardStateExpanded) {
+      return IconButton(
+        icon: const Icon(Icons.expand_more),
+        onPressed: () {
+          setState(() {
+            cardStateExpanded = true;
+          });
+        },
+      );
+    } else if (cardStateExpanded) {
+      return IconButton(
+        icon: const Icon(Icons.expand_less_outlined),
+        onPressed: () {
+          setState(() {
+            cardStateExpanded = false;
+          });
+        },
+      );
+    } else {
+      return SizedBox(width: 40);
+    }
+  }
+
   Widget buildCategoryLabel() {
     if (filterCategoryId == CATAGORY_FILTER_ALL ||
         filterCategoryId == CATAGORY_FILTER_UNSORTED) {
@@ -278,7 +325,20 @@ class _NoteCardState extends State<NoteCard>
         ),
       );
     }
-    return Spacer();
+    return SizedBox(width: 0);
+  }
+
+  Widget buildTimestampLabel() {
+    if (dataController.getCategory(widget.note.categoryId).showTimestamps) {
+      // return Expanded(
+      return Text(
+        dataController.getNoteCreationDateTime(widget.note.id),
+        style: const TextStyle(fontSize: 11),
+        textAlign: TextAlign.right,
+      );
+      //  );
+    }
+    return SizedBox(width: 0);
   }
 
   bool isNoteCheckboxCategory(String categoryId) {
@@ -323,7 +383,69 @@ class _NoteCardState extends State<NoteCard>
               },
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Column(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column 1: left icon (fixed)
+                    SizedBox(
+                      width:
+                          dataController
+                              .getCategory(widget.note.categoryId)
+                              .checklist
+                          ? 30
+                          : 0, // pick a consistent tap target width
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: buildCheckBox(),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Column 2: text
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 14),
+
+                              getCardTextContent(constraints),
+
+                              // optional footer row
+                              Row(
+                                children: [
+                                  buildCategoryLabel(),
+                                  const Spacer(),
+                                  buildExpandIcon(),
+                                  Spacer(),
+                                  buildTimestampLabel(),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Column 3: icons stacked (fixed)\
+                    SizedBox(
+                      width: 44, // consistent width for icon column
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [buildCategoryPickerIcon()],
+                      ),
+                    ),
+                  ],
+                ),
+
+                /*
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // TOP ROW
@@ -344,7 +466,7 @@ class _NoteCardState extends State<NoteCard>
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 14),
-                            child: getCardTextContent(),
+                            child: getCardTextContent(constraints),
                           ),
                         ),
 
@@ -371,10 +493,11 @@ class _NoteCardState extends State<NoteCard>
                             ),
                           ),
                         if (widget.note.isEditing) buildDeleteIcon(),
+                        buildExpandIcon(),
                       ],
                     ),
                   ],
-                ),
+                ),*/
               ),
             ),
           ),

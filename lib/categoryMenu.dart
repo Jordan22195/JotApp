@@ -8,13 +8,12 @@ import 'main.dart';
 class CategoryMenu extends StatefulWidget {
   final String currentSelectedCategoryId;
   final void Function(String) onSelected;
-  bool categoryEditMode;
+  static bool categoryEditMode = false;
 
   CategoryMenu({
     super.key,
     required this.currentSelectedCategoryId,
     required this.onSelected,
-    this.categoryEditMode = false,
   });
 
   @override
@@ -26,7 +25,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
     bool selected = widget.currentSelectedCategoryId == CATAGORY_FILTER_ALL;
     return ListTile(
       title: Text("All Notes"),
-      trailing: widget.categoryEditMode
+      trailing: CategoryMenu.categoryEditMode
           ? null
           : selected
           ? const Icon(Icons.check)
@@ -46,7 +45,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
         widget.currentSelectedCategoryId == CATAGORY_FILTER_UNSORTED;
     return ListTile(
       title: Text("Uncategorized Notes"),
-      trailing: widget.categoryEditMode
+      trailing: CategoryMenu.categoryEditMode
           ? null
           : selected
           ? const Icon(Icons.check)
@@ -72,15 +71,15 @@ class _CategoryMenuState extends State<CategoryMenu> {
 
       tiles.add(
         ListTile(
-          title: widget.categoryEditMode
+          title: CategoryMenu.categoryEditMode
               ? TextField(
                   controller: controller,
                   onChanged: (value) {
-                    dataController.setCatagoryName(category.id, value);
+                    category.name = value;
                   },
                 )
               : Text(category.name),
-          trailing: widget.categoryEditMode
+          trailing: CategoryMenu.categoryEditMode
               ? IconButton(
                   onPressed: () {
                     dataController.deleteCategory(category.id);
@@ -105,10 +104,10 @@ class _CategoryMenuState extends State<CategoryMenu> {
     return tiles;
   }
 
+  bool isNewCategoryChecklist = false;
+  bool isNewCategoryTimestamo = false;
   @override
   Widget build(BuildContext context) {
-    bool isNewCategoryChecklist = false;
-    bool isNewCategoryTimestamo = false;
     final dataController = context.watch<AppDataController>();
 
     return StatefulBuilder(
@@ -125,13 +124,16 @@ class _CategoryMenuState extends State<CategoryMenu> {
               Row(
                 children: [
                   IconButton(
-                    icon: widget.categoryEditMode
+                    icon: CategoryMenu.categoryEditMode
                         ? Icon(Icons.check)
                         : Icon(Icons.edit),
                     onPressed: () {
                       setState(() {});
-
-                      widget.categoryEditMode = !widget.categoryEditMode;
+                      if (CategoryMenu.categoryEditMode) {
+                        dataController.commitData();
+                      }
+                      CategoryMenu.categoryEditMode =
+                          !CategoryMenu.categoryEditMode;
 
                       setSheetState(() {});
                     },
@@ -182,14 +184,16 @@ class _CategoryMenuState extends State<CategoryMenu> {
                             Row(
                               children: [
                                 SelectableIconButton(
-                                  selected: false,
+                                  selected: isNewCategoryChecklist,
                                   icon: Icons.checklist,
                                   onChanged: (value) {
-                                    isNewCategoryChecklist = value;
+                                    setState(() {
+                                      isNewCategoryChecklist = value;
+                                    });
                                   },
                                 ),
                                 SelectableIconButton(
-                                  selected: false,
+                                  selected: isNewCategoryTimestamo,
                                   icon: Icons.timer_outlined,
                                   onChanged: (value) {
                                     isNewCategoryTimestamo = value;
