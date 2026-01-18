@@ -398,13 +398,13 @@ class _MyHomePageState extends State<MyHomePage> {
             // Apply reorder within the appropriate sublist
             if (inUncheckedSection(oldIndex)) {
               dataController.moveNoteItemInlist(
-                uncheckedNotes[oldIndex].id,
                 uncheckedNotes[newIndex].id,
+                uncheckedNotes[oldIndex].id,
               );
             } else {
               dataController.moveNoteItemInlist(
-                checkedNotes[oldIndex].id,
                 checkedNotes[newIndex].id,
+                checkedNotes[oldIndex].id,
               );
             }
           });
