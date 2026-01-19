@@ -48,6 +48,7 @@ class Note {
   String text;
   bool isEditing;
   bool isFavorite;
+  bool isTitle;
   bool checked;
   List<String> categories = [];
   final int noteCreationTimeMs;
@@ -58,6 +59,7 @@ class Note {
     this.text = "",
     this.isEditing = false,
     this.isFavorite = false,
+    this.isTitle = false,
     this.checked = false,
     int? noteCreationTimeMs,
   }) : id = id ?? uuid.v4(),
@@ -71,6 +73,7 @@ class Note {
         ? json['categoryId'] as String
         : '',
     checked: json['checked'] is bool ? json['checked'] as bool : false,
+    isTitle: json['isTitle'] is bool ? json['isTitle'] as bool : false,
     noteCreationTimeMs: json['noteCreationTimeMs'] is int
         ? json['noteCreationTimeMs'] as int
         : DateTime.now().toUtc().millisecondsSinceEpoch,
@@ -81,6 +84,7 @@ class Note {
     'text': text,
     'categoryId': categoryId,
     'checked': checked,
+    'isTitle': isTitle,
     'noteCreationTimeMs': noteCreationTimeMs,
   };
 }

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:notes_app/selectableIcon.dart';
 import 'package:provider/provider.dart';
 import 'AppData.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
 import 'categoryMenu.dart';
+import 'package:flutter/services.dart';
 
 class NoteCard extends StatefulWidget {
   final String initialText;
   final ValueChanged<String> onSave;
   final VoidCallback onDelete;
-  final VoidCallback onFavorite;
+  final VoidCallback onTitleToggle;
   final VoidCallback onTap;
   final void Function(bool) onCheck;
   final VoidCallback onEdit;
@@ -19,6 +21,7 @@ class NoteCard extends StatefulWidget {
   final Note note;
   final int dragIndex;
   final bool animateRemoval;
+  bool titleCard;
   bool isHighlighted = true;
 
   NoteCard({
@@ -27,7 +30,7 @@ class NoteCard extends StatefulWidget {
     required this.initialText,
     required this.onSave,
     required this.onDelete,
-    required this.onFavorite,
+    required this.onTitleToggle,
     required this.onTap,
     required this.onCheck,
     required this.onEdit,
@@ -36,6 +39,7 @@ class NoteCard extends StatefulWidget {
 
     this.startInEditMode = false,
     this.animateRemoval = false,
+    this.titleCard = false,
   });
 
   @override
@@ -161,6 +165,12 @@ class _NoteCardState extends State<NoteCard>
     ).then((_) {});
   }
 
+  final TextStyle sectionTitleTextStyle = const TextStyle(
+    fontSize: 32,
+    height: 1.2,
+    letterSpacing: 0.0,
+  );
+
   final TextStyle noteTextStyle = const TextStyle(
     fontSize: 16,
     height: 1.2,
@@ -183,7 +193,7 @@ class _NoteCardState extends State<NoteCard>
     if (widget.note.isEditing) {
       return TextField(
         controller: controller,
-        style: noteTextStyle,
+        style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
         textAlignVertical: TextAlignVertical.top,
         decoration: const InputDecoration(
           isCollapsed: true,
@@ -202,18 +212,24 @@ class _NoteCardState extends State<NoteCard>
     }
 
     if (cardStateExpanded) {
-      return Text(widget.note.text, style: noteTextStyle);
+      return Text(
+        widget.note.text,
+        style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
+      );
     }
 
     final t = Text(
       widget.note.text,
-      style: noteTextStyle,
+      style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
       maxLines: 6,
       overflow: TextOverflow.ellipsis,
     );
 
     final textPainter = TextPainter(
-      text: TextSpan(text: widget.note.text, style: noteTextStyle),
+      text: TextSpan(
+        text: widget.note.text,
+        style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
+      ),
       maxLines: 6,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: constraints.maxWidth);
@@ -226,6 +242,9 @@ class _NoteCardState extends State<NoteCard>
   double _opacity = 1.0;
   bool newCheckedValue = false;
   Widget buildCheckBox() {
+    if (widget.titleCard) {
+      return SizedBox(width: 10);
+    }
     if (isNoteCheckboxCategory(widget.note.categoryId)) {
       return Checkbox(
         value: widget.note.checked,
@@ -324,7 +343,7 @@ class _NoteCardState extends State<NoteCard>
   }
 
   Widget buildCategoryLabel() {
-    double textWidth = 120;
+    double textWidth = 80;
     if (filterCategoryId == CATAGORY_FILTER_ALL ||
         filterCategoryId == CATAGORY_FILTER_UNSORTED) {
       return SizedBox(
@@ -380,9 +399,9 @@ class _NoteCardState extends State<NoteCard>
           duration: const Duration(milliseconds: 300),
           opacity: _opacity,
           child: Card(
-            elevation: 1.5,
+            elevation: widget.titleCard ? 0 : 1.5,
             surfaceTintColor: Colors.transparent,
-            color: Color(0xFFFFFFFF),
+            color: widget.titleCard ? Colors.transparent : Color(0xFFFFFFFF),
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -400,70 +419,110 @@ class _NoteCardState extends State<NoteCard>
               },
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                child: Column(
                   children: [
-                    // Column 1: left icon (fixed)
-                    SizedBox(
-                      width:
-                          dataController
-                              .getCategory(widget.note.categoryId)
-                              .checklist
-                          ? 30
-                          : 0, // pick a consistent tap target width
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: buildCheckBox(),
-                      ),
-                    ),
+                    //Row 1 - content
+                    // CheckBox | Text | category picker
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Column 1: left icon (fixed)
+                        SizedBox(
+                          width:
+                              (!dataController
+                                      .getCategory(widget.note.categoryId)
+                                      .checklist ||
+                                  widget.titleCard)
+                              ? 0
+                              : 30, // pick a consistent tap target width
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: buildCheckBox(),
+                          ),
+                        ),
 
-                    const SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
-                    // Column 2: text
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 14),
-
-                              getCardTextContent(constraints),
-
-                              // optional footer row
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                        // Column 2: text
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  buildCategoryLabel(),
-                                  Expanded(child: buildExpandIcon()),
-                                  buildTimestampLabel(),
+                                  const SizedBox(height: 14),
+
+                                  getCardTextContent(constraints),
                                 ],
-                              ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        // Column 3: icons stacked (fixed)\
+                        SizedBox(
+                          width: 44, // consistent width for icon column
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (!widget.titleCard) buildCategoryPickerIcon(),
                             ],
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(width: 8),
+                    //Row 2 - status
+                    // cat label | expand | datetime
+                    Row(
+                      children: [
+                        buildCategoryLabel(),
+                        Expanded(child: buildExpandIcon()),
+                        if (!widget.titleCard) buildTimestampLabel(),
+                      ],
+                    ),
 
-                    // Column 3: icons stacked (fixed)\
-                    SizedBox(
-                      width: 44, // consistent width for icon column
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                    //Row 3 - edit button
+                    // tite | copy | trash
+                    if (widget.note.isEditing)
+                      Row(
                         children: [
-                          buildCategoryPickerIcon(),
+                          // title
+                          IconButton(
+                            icon: Icon(Icons.text_format),
+                            onPressed: () {
+                              setState(() {
+                                widget.onTitleToggle();
+                              });
+                            },
+                          ),
+                          // copy
+                          IconButton(
+                            icon: Icon(Icons.copy),
+                            onPressed: () {
+                              Clipboard.setData(
+                                ClipboardData(text: widget.note.text),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Copied to clipboard'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                          Spacer(),
+                          //delete
                           buildDeleteIcon(),
                         ],
                       ),
-                    ),
                   ],
                 ),
-
                 /*
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -446,7 +446,8 @@ class _MyHomePageState extends State<MyHomePage> {
           final note = noteForIndex(index);
 
           return NoteCard(
-            key: ValueKey(note.id), // 🔑 REQUIRED
+            key: ValueKey(note.id),
+            titleCard: note.isTitle,
             note: note,
             startInEditMode: note.isEditing,
             initialText: "",
@@ -467,7 +468,9 @@ class _MyHomePageState extends State<MyHomePage> {
               );
             },
             onEdit: () {},
-            onFavorite: () {},
+            onTitleToggle: () {
+              dataController.toggleNoteTitle(note.id);
+            },
             onCategorize: (catId) {
               setState(() {
                 noteInEditMode = false;
@@ -482,7 +485,7 @@ class _MyHomePageState extends State<MyHomePage> {
               );
             },
             onCheck: (checked) {
-              dataController.sortCheckedList(filterCategoryId);
+              setState(() {});
             },
             onTap: () {
               setState(() {

@@ -283,6 +283,13 @@ class AppDataController extends ChangeNotifier {
     return ret;
   }
 
+  void toggleNoteTitle(String noteId) {
+    Note n = getNote(noteId);
+    n.isTitle = !n.isTitle;
+    saveAppData(_data);
+    notifyListeners();
+  }
+
   void setNoteText(String noteId, String text) {
     Note n = getNote(noteId);
     n.text = text;
@@ -343,29 +350,38 @@ class AppDataController extends ChangeNotifier {
     return -1;
   }
 
+  // move checked notes after all the unchecked notes
   void sortCheckedList(String categoryId) {
-    int insertIndex = -1;
+    int insertIndex = 0;
     int currNoteIndex = 0;
     int nextNoteIndex = 0;
+
+    int getNextNoteIndex(int i) {
+      for (int y = i + 1; y < _data.notes.length; y++) {
+        if (_data.notes[y].categoryId == categoryId) {
+          return y;
+        }
+      }
+      return i;
+    }
+
     for (int i = 0; i < _data.notes.length; i++) {
+      // get index of first note in the category
       if (_data.notes[i].categoryId == categoryId) {
         currNoteIndex = i;
         if (insertIndex < 0) {
           insertIndex = currNoteIndex;
         }
 
-        for (int y = i + 1; y < _data.notes.length; y++) {
-          if (_data.notes[y].categoryId == categoryId) {
-            nextNoteIndex = y;
-            break;
-          }
-        }
+        //get index of the next note in category
+        nextNoteIndex = getNextNoteIndex(i);
 
-        // if not check, incremennt insert index
+        // if note is not checked, incremennt insert index,
+        //
         if (!_data.notes[i].checked && currNoteIndex == insertIndex) {
           insertIndex = nextNoteIndex;
         }
-        // if checked do nothing, just increment index
+        // if note is checked, set insert index
         //if !checked and i > insert Index, do insert, increase insert index
         else if (!_data.notes[i].checked && insertIndex != currNoteIndex) {
           Note n = _data.notes[i];
