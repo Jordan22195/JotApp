@@ -47,7 +47,7 @@ class _CategoryMenuState extends State<CategoryMenu> {
     bool selected =
         widget.currentSelectedCategoryId == CATAGORY_FILTER_UNSORTED;
     return ListTile(
-      title: Text("Uncategorized Notes"),
+      title: Text("Uncategorized"),
       trailing: CategoryMenu.categoryEditMode
           ? null
           : selected

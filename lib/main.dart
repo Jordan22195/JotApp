@@ -195,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (filterCategoryId == CATAGORY_FILTER_ALL) {
       ret = Text("All Notes");
     } else if (filterCategoryId == CATAGORY_FILTER_UNSORTED) {
-      ret = Text("Uncategorized Notes");
+      ret = Text("Uncategorized");
     } else {
       for (Category l in dataController.data.categories) {
         if (l.id == filterCategoryId) {
@@ -273,9 +273,14 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'New Note',
         child: const Icon(Icons.add),
         onPressed: () {
-          String id = dataController.addNewNoteCard();
+          String id = dataController.addNewNoteCard(
+            categoryId: filterCategoryId == CATAGORY_FILTER_ALL
+                ? CATAGORY_FILTER_UNSORTED
+                : filterCategoryId,
+          );
           noteIdInEditMode = id;
           noteInEditMode = true;
+          noteEditText = "";
 
           scrollToTop();
         },
@@ -452,8 +457,10 @@ class _MyHomePageState extends State<MyHomePage> {
             startInEditMode: note.isEditing,
             initialText: "",
             onSave: (newText) {
-              noteEditText = newText;
-              setState(() => note.text = newText);
+              setState(() {
+                note.text = newText;
+                noteEditText = newText;
+              });
             },
             onDelete: () {
               dataController.deleteNote(note.id);
@@ -467,15 +474,21 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               );
             },
-            onEdit: () {},
+            onNewNote: (noteId) {
+              setState(() {
+                noteEditText = "";
+                noteInEditMode = true;
+                noteIdInEditMode = noteId;
+              });
+            },
             onTitleToggle: () {
               dataController.toggleNoteTitle(note.id);
             },
             onCategorize: (catId) {
               setState(() {
                 noteInEditMode = false;
+                dataController.setNoteCatagory(note.id, catId);
               });
-              dataController.setNoteCatagory(note.id, catId);
               String name = dataController.getCategoryName(catId);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -493,7 +506,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 noteIdInEditMode = note.id;
               });
             },
-            dragIndex: index, // 👈 pass index down
           );
         },
       ),

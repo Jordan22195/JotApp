@@ -15,11 +15,10 @@ class NoteCard extends StatefulWidget {
   final VoidCallback onTitleToggle;
   final VoidCallback onTap;
   final void Function(bool) onCheck;
-  final VoidCallback onEdit;
+  final void Function(String) onNewNote;
   final void Function(String) onCategorize;
   final bool startInEditMode;
   final Note note;
-  final int dragIndex;
   final bool animateRemoval;
   bool titleCard;
   bool isHighlighted = true;
@@ -33,9 +32,8 @@ class NoteCard extends StatefulWidget {
     required this.onTitleToggle,
     required this.onTap,
     required this.onCheck,
-    required this.onEdit,
+    required this.onNewNote,
     required this.onCategorize,
-    required this.dragIndex,
 
     this.startInEditMode = false,
     this.animateRemoval = false,
@@ -166,7 +164,7 @@ class _NoteCardState extends State<NoteCard>
   }
 
   final TextStyle sectionTitleTextStyle = const TextStyle(
-    fontSize: 32,
+    fontSize: 24,
     height: 1.2,
     letterSpacing: 0.0,
   );
@@ -278,7 +276,6 @@ class _NoteCardState extends State<NoteCard>
           dataController.endEditForAllNotes();
           widget.onSave(controller.text);
           widget.note.isEditing = true;
-          widget.onEdit();
         },
       );
     } else {
@@ -344,8 +341,7 @@ class _NoteCardState extends State<NoteCard>
 
   Widget buildCategoryLabel() {
     double textWidth = 80;
-    if (filterCategoryId == CATAGORY_FILTER_ALL ||
-        filterCategoryId == CATAGORY_FILTER_UNSORTED) {
+    if (filterCategoryId == CATAGORY_FILTER_ALL) {
       return SizedBox(
         width: textWidth,
         child: Text(
@@ -412,7 +408,6 @@ class _NoteCardState extends State<NoteCard>
                 dataController.endEditForAllNotes();
                 widget.onSave(controller.text);
                 widget.note.isEditing = true;
-                widget.onEdit();
                 if (cardTextOverflow) {
                   cardStateExpanded = true;
                 }
@@ -470,7 +465,23 @@ class _NoteCardState extends State<NoteCard>
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (!widget.titleCard) buildCategoryPickerIcon(),
+                              widget.titleCard
+                                  ? IconButton(
+                                      onPressed: () {
+                                        String
+                                        id = dataController.addNewNoteCard(
+                                          categoryId: widget.note.categoryId,
+                                          insertIndex:
+                                              dataController.getNoteIndexInList(
+                                                widget.note.id,
+                                              ) +
+                                              1,
+                                        );
+                                        widget.onNewNote(id);
+                                      },
+                                      icon: Icon(Icons.add),
+                                    )
+                                  : buildCategoryPickerIcon(),
                             ],
                           ),
                         ),

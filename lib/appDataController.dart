@@ -117,7 +117,7 @@ class AppDataController extends ChangeNotifier {
     if (categoryId == CATAGORY_FILTER_ALL)
       return "All Notes";
     else if (categoryId == CATAGORY_FILTER_UNSORTED)
-      return "Uncategorized Notes";
+      return "Uncategorized";
     else if (data.categoryIdMap.containsKey(categoryId)) {
       return data.categoryIdMap[categoryId]!.name;
     } else {
@@ -146,6 +146,23 @@ class AppDataController extends ChangeNotifier {
 
   List<Note> buildFilteredNotesList(String categoryId, bool checked) {
     List<Note> list = [];
+
+    if (categoryId == CATAGORY_FILTER_ALL && checked == false) {
+      for (Note n in _data.notes) {
+        if (n.categoryId == CATAGORY_FILTER_UNSORTED) {
+          list.add(n);
+        }
+      }
+      for (Category c in _data.categories) {
+        for (Note n in _data.notes) {
+          if (n.categoryId == c.id &&
+              n.categoryId != CATAGORY_FILTER_UNSORTED) {
+            list.add(n);
+          }
+        }
+      }
+      return list;
+    }
     //if category is not checklist get all items if you want unchecked items
     if (!getCategory(categoryId).checklist) {
       //if category is not checklist and want checked items
@@ -171,20 +188,22 @@ class AppDataController extends ChangeNotifier {
     return list;
   }
 
-  String addNewNoteCard() {
+  String addNewNoteCard({
+    String categoryId = CATAGORY_FILTER_UNSORTED,
+    int insertIndex = 0,
+  }) {
     Note n = Note(
       text: "",
-      categoryId: filterCategoryId == CATAGORY_FILTER_ALL
-          ? ""
-          : filterCategoryId,
+      categoryId: categoryId,
       isEditing: true, // starts as TextField
     );
     endEditForAllNotes();
 
-    _data.notes.insert(0, n);
+    _data.notes.insert(insertIndex, n);
     _data.noteIdMap[n.id] = n;
     if (n.categoryId != CATAGORY_FILTER_ALL &&
-        n.categoryId != CATAGORY_FILTER_UNSORTED) {
+        n.categoryId != CATAGORY_FILTER_UNSORTED &&
+        filterCategoryId != CATAGORY_FILTER_ALL) {
       moveCategoryToTopOfList(n.categoryId);
     }
     saveAppData(_data);
