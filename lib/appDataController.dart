@@ -435,6 +435,24 @@ class AppDataController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<Note> getNotesOrderedByCreationTimeWithoutTitles({String? categoryId}) {
+    final List<Note> notes = _data.notes.where((note) {
+      if (note.isTitle) {
+        return false;
+      }
+
+      if (categoryId == null || categoryId == CATAGORY_FILTER_ALL) {
+        return true;
+      }
+
+      return note.categoryId == categoryId;
+    }).toList();
+
+    notes.sort((a, b) => a.noteCreationTimeMs.compareTo(b.noteCreationTimeMs));
+
+    return notes;
+  }
+
   void moveNoteToEndOfList(String noteId) {
     int oldIndex = getNoteIndexInList(noteId);
     _data.notes.removeAt(oldIndex);

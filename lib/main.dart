@@ -48,6 +48,8 @@ const Map<ColorPalettes, List<Color>> colorPalettes = {
 
 enum MenuAction { deleteCatagory, loadAppData }
 
+enum NoteSortMode { oldestFirst, newestFirst, byCategory }
+
 Color? getColor(int index) {
   return colorPalettes[currentPallete]?[index];
 }
@@ -185,6 +187,56 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String latestInputText = "";
   final TextEditingController controller = TextEditingController();
+
+  NoteSortMode currentSortMode = NoteSortMode.byCategory;
+
+  NoteSortMode getNextSortMode(NoteSortMode mode) {
+    switch (mode) {
+      case NoteSortMode.oldestFirst:
+        return NoteSortMode.newestFirst;
+      case NoteSortMode.newestFirst:
+        return NoteSortMode.byCategory;
+      case NoteSortMode.byCategory:
+        return NoteSortMode.oldestFirst;
+    }
+  }
+
+  String getSortModeLabel(NoteSortMode mode) {
+    switch (mode) {
+      case NoteSortMode.oldestFirst:
+        return 'Sort: Oldest First';
+      case NoteSortMode.newestFirst:
+        return 'Sort: Newest First';
+      case NoteSortMode.byCategory:
+        return 'Sort: Organized by Category';
+    }
+  }
+
+  IconData getSortModeIcon(NoteSortMode mode) {
+    switch (mode) {
+      case NoteSortMode.oldestFirst:
+        return Icons.hourglass_top;
+      case NoteSortMode.newestFirst:
+        return Icons.hourglass_bottom;
+      case NoteSortMode.byCategory:
+        return Icons.sort;
+    }
+  }
+
+  void cycleSortMode() {
+    final NoteSortMode nextMode = getNextSortMode(currentSortMode);
+
+    setState(() {
+      currentSortMode = nextMode;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(getSortModeLabel(nextMode)),
+        duration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
 
   late final ScrollController _scrollController;
   late AppDataController dataController;
@@ -350,20 +402,115 @@ class _MyHomePageState extends State<MyHomePage> {
     return false;
   }
 
+  Widget buildChronologicalNoteCardList({required bool newestFirst}) {
+    final List<Note> notes = dataController
+        .getNotesOrderedByCreationTimeWithoutTitles(
+          categoryId: filterCategoryId,
+        )
+        .toList();
+
+    if (newestFirst) {
+      notes.sort(
+        (a, b) => b.noteCreationTimeMs.compareTo(a.noteCreationTimeMs),
+      );
+    }
+
+    return Expanded(
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.only(bottom: 128),
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final Note note = notes[index];
+
+          return NoteCard(
+            key: ValueKey(note.id),
+            titleCard: note.isTitle,
+            note: note,
+            startInEditMode: note.isEditing,
+            initialText: "",
+            onSave: (newText) {
+              setState(() {
+                note.text = newText;
+                noteEditText = newText;
+              });
+            },
+            onDelete: () {
+              dataController.deleteNote(note.id);
+              setState(() {
+                noteInEditMode = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Note Deleted'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            onNewNote: (noteId) {
+              setState(() {
+                noteEditText = "";
+                noteInEditMode = true;
+                noteIdInEditMode = noteId;
+              });
+            },
+            onTitleToggle: () {
+              dataController.toggleNoteTitle(note.id);
+            },
+            onCategorize: (catId) {
+              if (catId == CATAGORY_FILTER_ALL) {
+                return;
+              }
+              setState(() {
+                noteInEditMode = false;
+                dataController.setNoteCatagory(note.id, catId);
+              });
+              String name = dataController.getCategoryName(catId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Moved Note to $name'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+            onCheck: (checked) {
+              setState(() {});
+            },
+            onTap: () {
+              setState(() {
+                noteInEditMode = true;
+                noteIdInEditMode = note.id;
+              });
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildCurrentNoteList() {
+    switch (currentSortMode) {
+      case NoteSortMode.oldestFirst:
+        return buildChronologicalNoteCardList(newestFirst: false);
+      case NoteSortMode.newestFirst:
+        return buildChronologicalNoteCardList(newestFirst: true);
+      case NoteSortMode.byCategory:
+        return buildNoteCardList();
+    }
+  }
+
   bool showChecked = true;
   Widget buildNoteCardList() {
     List<Note> uncheckedNotes = [];
     List<Note> checkedNotes = [];
-    setState(() {
-      uncheckedNotes = dataController.buildFilteredNotesList(
-        filterCategoryId,
-        false,
-      );
-      checkedNotes = dataController.buildFilteredNotesList(
-        filterCategoryId,
-        true,
-      );
-    });
+    uncheckedNotes = dataController.buildFilteredNotesList(
+      filterCategoryId,
+      false,
+    );
+    checkedNotes = dataController.buildFilteredNotesList(
+      filterCategoryId,
+      true,
+    );
 
     final dividerIndex = uncheckedNotes.length;
     final toggleIndex = uncheckedNotes.length + 1;
@@ -569,6 +716,11 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  IconButton(
+                    onPressed: cycleSortMode,
+                    tooltip: 'Change Sort',
+                    icon: Icon(getSortModeIcon(currentSortMode)),
+                  ),
                   if (isFilterSetToCategory())
                     SelectableIconButton(
                       icon: Icons.timer_outlined,
@@ -690,7 +842,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
-        body: Center(child: Column(children: [buildNoteCardList()])),
+        body: Center(child: Column(children: [buildCurrentNoteList()])),
         bottomNavigationBar: SafeArea(
           child: Row(
             children: [
