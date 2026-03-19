@@ -190,9 +190,12 @@ class _NoteCardState extends State<NoteCard>
 
   bool cardTextOverflow = false;
   bool cardStateExpanded = false;
-  Widget getCardTextContent(constraints) {
+
+  Widget getCardTextContent(double textMaxWidth, bool hasOverflow) {
     if (widget.note.isEditing) {
-      final textField = TextField(
+      cardStateExpanded = hasOverflow;
+
+      return TextField(
         controller: controller,
         style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
         textAlignVertical: TextAlignVertical.top,
@@ -202,7 +205,7 @@ class _NoteCardState extends State<NoteCard>
           contentPadding: EdgeInsets.zero,
         ),
         autofocus: true,
-        maxLines: null, // ← auto grows
+        maxLines: null,
         keyboardType: TextInputType.multiline,
         textInputAction: TextInputAction.newline,
         onChanged: (value) {
@@ -211,23 +214,8 @@ class _NoteCardState extends State<NoteCard>
           setState(() {});
         },
       );
-
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: widget.note.text,
-          style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
-        ),
-        maxLines: 6,
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: constraints.maxWidth);
-
-      cardTextOverflow = textPainter.didExceedMaxLines;
-      cardStateExpanded = cardTextOverflow;
-
-      return textField;
     }
 
-    // card state is collapsed by defaul on createion
     if (cardStateExpanded) {
       return Text(
         widget.note.text,
@@ -235,25 +223,12 @@ class _NoteCardState extends State<NoteCard>
       );
     }
 
-    final t = Text(
+    return Text(
       widget.note.text,
       style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
       maxLines: 6,
       overflow: TextOverflow.ellipsis,
     );
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: widget.note.text,
-        style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
-      ),
-      maxLines: 6,
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: constraints.maxWidth);
-
-    cardTextOverflow = textPainter.didExceedMaxLines;
-
-    return t;
   }
 
   double _opacity = 1.0;
@@ -331,38 +306,38 @@ class _NoteCardState extends State<NoteCard>
     }
   }
 
-  Widget buildExpandIcon() {
-    double widgetWidth = 1;
-    IconButton button;
+  Widget buildExpandIcon(bool hasOverflow) {
+    const double widgetWidth = 40;
 
-    // show the expand arrow if the card has text overflow
-    // and the card state is not collapsed
-    if (cardTextOverflow && !cardStateExpanded) {
-      button = IconButton(
-        icon: const Icon(Icons.expand_more),
-        onPressed: () {
-          setState(() {
-            cardStateExpanded = true;
-          });
-        },
+    if (hasOverflow && !cardStateExpanded) {
+      return SizedBox(
+        width: widgetWidth,
+        child: IconButton(
+          icon: const Icon(Icons.expand_more),
+          onPressed: () {
+            setState(() {
+              cardStateExpanded = true;
+            });
+          },
+        ),
       );
-      // if the card state is expanded, show the collapse button
     } else if (cardStateExpanded) {
-      button = IconButton(
-        icon: const Icon(Icons.expand_less_outlined),
-        onPressed: () {
-          setState(() {
-            cardStateExpanded = false;
-            // end edit on collapse
-            dataController.getNote(widget.note.id).isEditing = false;
+      return SizedBox(
+        width: widgetWidth,
+        child: IconButton(
+          icon: const Icon(Icons.expand_less_outlined),
+          onPressed: () {
+            setState(() {
+              cardStateExpanded = false;
+              dataController.getNote(widget.note.id).isEditing = false;
+            });
             widget.onSave();
-          });
-        },
+          },
+        ),
       );
-    } else {
-      return SizedBox(width: widgetWidth);
     }
-    return SizedBox(width: widgetWidth, child: button);
+
+    return const SizedBox(width: widgetWidth);
   }
 
   Widget buildCategoryLabel() {
@@ -411,8 +386,8 @@ class _NoteCardState extends State<NoteCard>
   bool testCheck = true;
   @override
   Widget build(BuildContext context) {
+    print("building card ${widget.note.id}");
     dataController = context.watch<AppDataController>();
-
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -441,181 +416,144 @@ class _NoteCardState extends State<NoteCard>
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
 
-                child: Column(
-                  children: [
-                    //Row 1 - content
-                    // CheckBox | Text | category picker
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Column 1: left icon (fixed)
-                        SizedBox(
-                          width:
-                              (!dataController
-                                      .getCategory(widget.note.categoryId)
-                                      .checklist ||
-                                  widget.titleCard)
-                              ? 0
-                              : 30, // pick a consistent tap target width
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: buildCheckBox(),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final textStyle = widget.titleCard
+                        ? sectionTitleTextStyle
+                        : noteTextStyle;
+
+                    final checkboxWidth =
+                        (!dataController
+                                .getCategory(widget.note.categoryId)
+                                .checklist ||
+                            widget.titleCard)
+                        ? 0.0
+                        : 30.0;
+
+                    const gap1 = 8.0;
+                    const gap2 = 8.0;
+                    const iconColumnWidth = 44.0;
+
+                    final textMaxWidth =
+                        constraints.maxWidth -
+                        checkboxWidth -
+                        gap1 -
+                        gap2 -
+                        iconColumnWidth;
+
+                    final textPainter =
+                        TextPainter(
+                          text: TextSpan(
+                            text: widget.note.text,
+                            style: textStyle,
                           ),
-                        ),
+                          maxLines: 6,
+                          textDirection: TextDirection.ltr,
+                        )..layout(
+                          maxWidth: textMaxWidth.clamp(0.0, double.infinity),
+                        );
 
-                        const SizedBox(width: 8),
+                    final hasOverflow = textPainter.didExceedMaxLines;
+                    cardTextOverflow = hasOverflow;
 
-                        // Column 2: text
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return Column(
+                    return Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: checkboxWidth,
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: buildCheckBox(),
+                              ),
+                            ),
+                            const SizedBox(width: gap1),
+                            Expanded(
+                              child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 14),
-
-                                  getCardTextContent(constraints),
+                                  getCardTextContent(textMaxWidth, hasOverflow),
                                 ],
-                              );
-                            },
-                          ),
+                              ),
+                            ),
+                            const SizedBox(width: gap2),
+                            SizedBox(
+                              width: iconColumnWidth,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  widget.titleCard
+                                      ? IconButton(
+                                          onPressed: () {
+                                            String id = dataController
+                                                .addNewNoteCard(
+                                                  categoryId:
+                                                      widget.note.categoryId,
+                                                  insertIndex:
+                                                      dataController
+                                                          .getNoteIndexInList(
+                                                            widget.note.id,
+                                                          ) +
+                                                      1,
+                                                );
+                                            widget.onNewNote(id);
+                                          },
+                                          icon: const Icon(Icons.add),
+                                        )
+                                      : buildCategoryPickerIcon(),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
 
-                        const SizedBox(width: 8),
+                        Row(
+                          children: [
+                            buildCategoryLabel(),
+                            Expanded(child: buildExpandIcon(hasOverflow)),
+                            if (!widget.titleCard) buildTimestampLabel(),
+                          ],
+                        ),
 
-                        // Column 3: icons stacked (fixed)\
-                        SizedBox(
-                          width: 44, // consistent width for icon column
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                        if (widget.note.isEditing)
+                          Row(
                             children: [
-                              widget.titleCard
+                              widget.showTitleToggleIcon
                                   ? IconButton(
+                                      icon: const Icon(Icons.text_format),
                                       onPressed: () {
-                                        String
-                                        id = dataController.addNewNoteCard(
-                                          categoryId: widget.note.categoryId,
-                                          insertIndex:
-                                              dataController.getNoteIndexInList(
-                                                widget.note.id,
-                                              ) +
-                                              1,
-                                        );
-                                        widget.onNewNote(id);
+                                        setState(() {
+                                          widget.onTitleToggle();
+                                        });
                                       },
-                                      icon: Icon(Icons.add),
                                     )
-                                  : buildCategoryPickerIcon(),
+                                  : const SizedBox(width: 48),
+                              IconButton(
+                                icon: const Icon(Icons.copy),
+                                onPressed: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: widget.note.text),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Copied to clipboard'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const Spacer(),
+                              buildDeleteIcon(),
                             ],
                           ),
-                        ),
                       ],
-                    ),
-
-                    //Row 2 - status
-                    // cat label | expand | datetime
-                    Row(
-                      children: [
-                        buildCategoryLabel(),
-                        Expanded(child: buildExpandIcon()),
-                        if (!widget.titleCard) buildTimestampLabel(),
-                      ],
-                    ),
-
-                    //Row 3 - edit button
-                    // tite | copy | trash
-                    if (widget.note.isEditing)
-                      Row(
-                        children: [
-                          // title
-                          widget.showTitleToggleIcon
-                              ? IconButton(
-                                  icon: Icon(Icons.text_format),
-                                  onPressed: () {
-                                    setState(() {
-                                      widget.onTitleToggle();
-                                    });
-                                  },
-                                )
-                              : const SizedBox(width: 48),
-                          // copy
-                          IconButton(
-                            icon: Icon(Icons.copy),
-                            onPressed: () {
-                              Clipboard.setData(
-                                ClipboardData(text: widget.note.text),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Copied to clipboard'),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                          ),
-                          Spacer(),
-                          //delete
-                          buildDeleteIcon(),
-                        ],
-                      ),
-                  ],
+                    );
+                  },
                 ),
-                /*
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // TOP ROW
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        widget.note.isEditing
-                            ? const SizedBox(width: 0)
-                            : ReorderableDelayedDragStartListener(
-                                index: widget.dragIndex,
-                                child: const SizedBox(width: 0),
-                              ),
-
-                        Padding(
-                          padding: const EdgeInsets.only(top: 0),
-                          child: buildCheckBox(),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: getCardTextContent(constraints),
-                          ),
-                        ),
-
-                        //buildEditIcon(),
-                        buildCategoryPickerIcon(),
-                      ],
-                    ),
-
-                    // BOTTOM ROW
-                    Row(
-                      children: [
-                        const SizedBox(width: 10),
-                        buildCategoryLabel(),
-                        if (dataController
-                            .getCategory(widget.note.categoryId)
-                            .showTimestamps)
-                          Expanded(
-                            child: Text(
-                              dataController.getNoteCreationDateTime(
-                                widget.note.id,
-                              ),
-                              style: const TextStyle(fontSize: 11),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                        if (widget.note.isEditing) buildDeleteIcon(),
-                        buildExpandIcon(),
-                      ],
-                    ),
-                  ],
-                ),*/
               ),
             ),
           ),
