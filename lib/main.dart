@@ -77,10 +77,12 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    Color c1 = greenPalette[3]; // primary
-    Color c2 = greenPalette[2]; // secondary
-    Color c3 = greenPalette[1]; // tertiary
-    Color c4 = greenPalette[0]; // background
+    final pallette = redPalette;
+
+    Color c1 = pallette[3]; // primary
+    Color c2 = pallette[2]; // secondary
+    Color c3 = pallette[1]; // tertiary
+    Color c4 = pallette[0]; // background
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -109,13 +111,14 @@ class MyApp extends StatelessWidget {
           surfaceTint: c1, // nice M3 tint behavior
         ),
 
-        //bottom sheet
         bottomSheetTheme: BottomSheetThemeData(backgroundColor: getColor(0)),
         scaffoldBackgroundColor: getColor(0),
         popupMenuTheme: PopupMenuThemeData(color: getColor(0)),
 
         //app bar
         appBarTheme: AppBarThemeData(
+          iconTheme: IconThemeData(color: getColor(3)),
+          actionsIconTheme: IconThemeData(color: getColor(3)),
           backgroundColor: getColor(1),
           titleTextStyle: TextStyle(
             fontWeight: FontWeight.bold,
