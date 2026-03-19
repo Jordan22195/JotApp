@@ -485,6 +485,9 @@ class _MyHomePageState extends State<MyHomePage> {
               dataController.toggleNoteTitle(note.id);
             },
             onCategorize: (catId) {
+              if (catId == CATAGORY_FILTER_ALL) {
+                return;
+              }
               setState(() {
                 noteInEditMode = false;
                 dataController.setNoteCatagory(note.id, catId);

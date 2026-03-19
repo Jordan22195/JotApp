@@ -68,6 +68,9 @@ class _CategoryMenuState extends State<CategoryMenu> {
     final dataController = context.watch<AppDataController>();
     final data = dataController.data;
     for (Category category in data.categories) {
+      if (category.id == CATAGORY_FILTER_UNSORTED) {
+        continue;
+      }
       final selected = widget.currentSelectedCategoryId == category.id;
       final controller = TextEditingController();
       controller.text = category.name;
@@ -156,13 +159,14 @@ class _CategoryMenuState extends State<CategoryMenu> {
                 ],
               ),
 
+              // create category button at top
               ListTile(
                 leading: const Icon(Icons.add),
                 title: const Text('Create New Category'),
                 onTap: () async {
                   isNewCategoryChecklist = false;
                   isNewCategoryTimestamo = false;
-                  // Ask for name
+                  // popup for new catagory
                   final name = await showDialog<String?>(
                     context: context,
                     builder: (context) {
