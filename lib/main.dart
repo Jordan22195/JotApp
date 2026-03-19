@@ -7,6 +7,7 @@ import 'noteCard.dart';
 import 'dataStorage.dart';
 import 'appDataController.dart';
 import 'selectableIcon.dart';
+import 'package:flutter/gestures.dart';
 
 void main() {
   runApp(
@@ -49,6 +50,23 @@ enum MenuAction { deleteCatagory, loadAppData }
 
 Color? getColor(int index) {
   return colorPalettes[currentPallete]?[index];
+}
+
+class ShortDelayReorderableDragStartListener
+    extends ReorderableDragStartListener {
+  const ShortDelayReorderableDragStartListener({
+    super.key,
+    required super.child,
+    required super.index,
+    this.delay = const Duration(milliseconds: 150),
+  });
+
+  final Duration delay;
+
+  @override
+  MultiDragGestureRecognizer createRecognizer() {
+    return DelayedMultiDragGestureRecognizer(delay: delay, debugOwner: this);
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -369,6 +387,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Expanded(
       child: ReorderableListView.builder(
+        buildDefaultDragHandles: false,
         scrollController: _scrollController,
         itemCount: itemCount,
         padding: const EdgeInsets.only(
@@ -399,6 +418,11 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           if (inCheckedSection(oldIndex) && !inCheckedSection(newIndex)) return;
 
+          //  Dissalow crossing categories
+          if (noteForIndex(newIndex).categoryId !=
+              noteForIndex(oldIndex).categoryId) {
+            return;
+          }
           setState(() {
             // Apply reorder within the appropriate sublist
             if (inUncheckedSection(oldIndex)) {
@@ -450,65 +474,69 @@ class _MyHomePageState extends State<MyHomePage> {
 
           final note = noteForIndex(index);
 
-          return NoteCard(
+          return ShortDelayReorderableDragStartListener(
             key: ValueKey(note.id),
-            titleCard: note.isTitle,
-            note: note,
-            startInEditMode: note.isEditing,
-            initialText: "",
-            onSave: (newText) {
-              setState(() {
-                note.text = newText;
-                noteEditText = newText;
-              });
-            },
-            onDelete: () {
-              dataController.deleteNote(note.id);
-              setState(() {
-                noteInEditMode = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Note Deleted'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            onNewNote: (noteId) {
-              setState(() {
-                noteEditText = "";
-                noteInEditMode = true;
-                noteIdInEditMode = noteId;
-              });
-            },
-            onTitleToggle: () {
-              dataController.toggleNoteTitle(note.id);
-            },
-            onCategorize: (catId) {
-              if (catId == CATAGORY_FILTER_ALL) {
-                return;
-              }
-              setState(() {
-                noteInEditMode = false;
-                dataController.setNoteCatagory(note.id, catId);
-              });
-              String name = dataController.getCategoryName(catId);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Moved Note to $name'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            onCheck: (checked) {
-              setState(() {});
-            },
-            onTap: () {
-              setState(() {
-                noteInEditMode = true;
-                noteIdInEditMode = note.id;
-              });
-            },
+            index: index,
+            child: NoteCard(
+              key: ValueKey(note.id),
+              titleCard: note.isTitle,
+              note: note,
+              startInEditMode: note.isEditing,
+              initialText: "",
+              onSave: (newText) {
+                setState(() {
+                  note.text = newText;
+                  noteEditText = newText;
+                });
+              },
+              onDelete: () {
+                dataController.deleteNote(note.id);
+                setState(() {
+                  noteInEditMode = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Note Deleted'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              onNewNote: (noteId) {
+                setState(() {
+                  noteEditText = "";
+                  noteInEditMode = true;
+                  noteIdInEditMode = noteId;
+                });
+              },
+              onTitleToggle: () {
+                dataController.toggleNoteTitle(note.id);
+              },
+              onCategorize: (catId) {
+                if (catId == CATAGORY_FILTER_ALL) {
+                  return;
+                }
+                setState(() {
+                  noteInEditMode = false;
+                  dataController.setNoteCatagory(note.id, catId);
+                });
+                String name = dataController.getCategoryName(catId);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Moved Note to $name'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              onCheck: (checked) {
+                setState(() {});
+              },
+              onTap: () {
+                setState(() {
+                  noteInEditMode = true;
+                  noteIdInEditMode = note.id;
+                });
+              },
+            ),
           );
         },
       ),
