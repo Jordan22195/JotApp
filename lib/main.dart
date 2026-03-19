@@ -189,6 +189,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String latestInputText = "";
+  bool showChecked = true;
+
   final TextEditingController controller = TextEditingController();
 
   NoteSortMode currentSortMode = NoteSortMode.byCategory;
@@ -207,11 +209,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String getSortModeLabel(NoteSortMode mode) {
     switch (mode) {
       case NoteSortMode.oldestFirst:
-        return 'Sort: Oldest First';
+        return 'Oldest at top';
       case NoteSortMode.newestFirst:
-        return 'Sort: Newest First';
+        return 'Newest at top';
       case NoteSortMode.byCategory:
-        return 'Sort: Organized by Category';
+        return 'Custom order';
     }
   }
 
@@ -236,7 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(getSortModeLabel(nextMode)),
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 750),
       ),
     );
   }
@@ -257,6 +259,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
       _scrollController.animateTo(
         0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) {
+        return;
+      }
+
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -355,7 +371,11 @@ class _MyHomePageState extends State<MyHomePage> {
           noteInEditMode = true;
           noteEditText = "";
 
-          scrollToTop();
+          if (currentSortMode == NoteSortMode.oldestFirst) {
+            scrollToBottom();
+          } else {
+            scrollToTop();
+          }
         },
       ),
     );
@@ -373,6 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onSelected: (selectedCategoryId) {
           setState(() {
             setCatagoryFilter(selectedCategoryId);
+            currentSortMode = NoteSortMode.byCategory;
           });
         },
       ),
@@ -427,15 +448,22 @@ class _MyHomePageState extends State<MyHomePage> {
           final Note note = notes[index];
 
           return NoteCard(
+            showTitleToggleIcon: false,
             key: ValueKey(note.id),
             titleCard: note.isTitle,
             note: note,
             startInEditMode: note.isEditing,
             initialText: "",
-            onSave: (newText) {
+            onNoteTextChange: (newText) {
               setState(() {
                 note.text = newText;
                 noteEditText = newText;
+              });
+            },
+            onSave: () {
+              setState(() {
+                noteInEditMode = false;
+                dataController.setNoteText(note.id, note.text);
               });
             },
             onDelete: () {
@@ -502,7 +530,52 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  bool showChecked = true;
+  void confirmDeleteCheckedNotes(List<Note> checkedNotes) {
+    final int checkedCount = checkedNotes.length;
+    if (checkedCount == 0) {
+      return;
+    }
+
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Checked Notes?'),
+          content: Text(
+            'Are you sure you want to delete $checkedCount ${checkedCount == 1 ? 'checked note' : 'checked notes'}?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true) {
+        setState(() {
+          for (final note in checkedNotes.toList()) {
+            dataController.deleteNote(note.id);
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$checkedCount ${checkedCount == 1 ? 'checked note deleted' : 'checked notes deleted'}',
+            ),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    });
+  }
+
   Widget buildNoteCardList() {
     List<Note> uncheckedNotes = [];
     List<Note> checkedNotes = [];
@@ -612,12 +685,37 @@ class _MyHomePageState extends State<MyHomePage> {
             }
             return ListTile(
               key: const ValueKey('__checked_toggle__'),
-              title: Text(
-                showChecked ? 'Checked' : 'Checked (${checkedNotes.length})',
-              ),
-              trailing: TextButton(
-                onPressed: () => setState(() => showChecked = !showChecked),
-                child: Text(showChecked ? 'Hide' : 'Show'),
+              title: SizedBox(
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        tooltip: 'Delete checked notes',
+                        onPressed: () =>
+                            confirmDeleteCheckedNotes(checkedNotes),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        showChecked
+                            ? 'Checked'
+                            : 'Checked (${checkedNotes.length})',
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () =>
+                            setState(() => showChecked = !showChecked),
+                        child: Text(showChecked ? 'Hide' : 'Show'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -633,10 +731,16 @@ class _MyHomePageState extends State<MyHomePage> {
               note: note,
               startInEditMode: note.isEditing,
               initialText: "",
-              onSave: (newText) {
+              onNoteTextChange: (newText) {
                 setState(() {
                   note.text = newText;
                   noteEditText = newText;
+                });
+              },
+              onSave: () {
+                setState(() {
+                  noteInEditMode = false;
+                  dataController.setNoteText(note.id, note.text);
                 });
               },
               onDelete: () {

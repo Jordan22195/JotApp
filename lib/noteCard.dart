@@ -10,16 +10,18 @@ import 'package:flutter/services.dart';
 
 class NoteCard extends StatefulWidget {
   final String initialText;
-  final ValueChanged<String> onSave;
+  final ValueChanged<String> onNoteTextChange;
   final VoidCallback onDelete;
   final VoidCallback onTitleToggle;
   final VoidCallback onTap;
+  final VoidCallback onSave;
   final void Function(bool) onCheck;
   final void Function(String) onNewNote;
   final void Function(String) onCategorize;
   final bool startInEditMode;
   final Note note;
   final bool animateRemoval;
+  final bool showTitleToggleIcon;
   bool titleCard;
   bool isHighlighted = true;
 
@@ -27,6 +29,7 @@ class NoteCard extends StatefulWidget {
     required super.key,
     required this.note,
     required this.initialText,
+    required this.onNoteTextChange,
     required this.onSave,
     required this.onDelete,
     required this.onTitleToggle,
@@ -34,10 +37,10 @@ class NoteCard extends StatefulWidget {
     required this.onCheck,
     required this.onNewNote,
     required this.onCategorize,
-
     this.startInEditMode = false,
     this.animateRemoval = false,
     this.titleCard = false,
+    this.showTitleToggleIcon = true,
   });
 
   @override
@@ -189,7 +192,7 @@ class _NoteCardState extends State<NoteCard>
   bool cardStateExpanded = false;
   Widget getCardTextContent(constraints) {
     if (widget.note.isEditing) {
-      return TextField(
+      final textField = TextField(
         controller: controller,
         style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
         textAlignVertical: TextAlignVertical.top,
@@ -204,11 +207,27 @@ class _NoteCardState extends State<NoteCard>
         textInputAction: TextInputAction.newline,
         onChanged: (value) {
           widget.note.text = value;
-          widget.onSave(value);
+          widget.onNoteTextChange(value);
+          setState(() {});
         },
       );
+
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: widget.note.text,
+          style: widget.titleCard ? sectionTitleTextStyle : noteTextStyle,
+        ),
+        maxLines: 6,
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: constraints.maxWidth);
+
+      cardTextOverflow = textPainter.didExceedMaxLines;
+      cardStateExpanded = cardTextOverflow;
+
+      return textField;
     }
 
+    // card state is collapsed by defaul on createion
     if (cardStateExpanded) {
       return Text(
         widget.note.text,
@@ -274,7 +293,7 @@ class _NoteCardState extends State<NoteCard>
         icon: const Icon(Icons.edit),
         onPressed: () {
           dataController.endEditForAllNotes();
-          widget.onSave(controller.text);
+          widget.onNoteTextChange(controller.text);
           widget.note.isEditing = true;
         },
       );
@@ -283,7 +302,7 @@ class _NoteCardState extends State<NoteCard>
         icon: const Icon(Icons.check),
         onPressed: () {
           setState(() => widget.note.isEditing = false);
-          widget.onSave(controller.text);
+          widget.onNoteTextChange(controller.text);
         },
       );
     }
@@ -315,6 +334,9 @@ class _NoteCardState extends State<NoteCard>
   Widget buildExpandIcon() {
     double widgetWidth = 1;
     IconButton button;
+
+    // show the expand arrow if the card has text overflow
+    // and the card state is not collapsed
     if (cardTextOverflow && !cardStateExpanded) {
       button = IconButton(
         icon: const Icon(Icons.expand_more),
@@ -324,12 +346,16 @@ class _NoteCardState extends State<NoteCard>
           });
         },
       );
+      // if the card state is expanded, show the collapse button
     } else if (cardStateExpanded) {
       button = IconButton(
         icon: const Icon(Icons.expand_less_outlined),
         onPressed: () {
           setState(() {
             cardStateExpanded = false;
+            // end edit on collapse
+            dataController.getNote(widget.note.id).isEditing = false;
+            widget.onSave();
           });
         },
       );
@@ -406,7 +432,7 @@ class _NoteCardState extends State<NoteCard>
               onTap: () {
                 widget.onTap();
                 dataController.endEditForAllNotes();
-                widget.onSave(controller.text);
+                widget.onNoteTextChange(controller.text);
                 widget.note.isEditing = true;
                 if (cardTextOverflow) {
                   cardStateExpanded = true;
@@ -504,14 +530,16 @@ class _NoteCardState extends State<NoteCard>
                       Row(
                         children: [
                           // title
-                          IconButton(
-                            icon: Icon(Icons.text_format),
-                            onPressed: () {
-                              setState(() {
-                                widget.onTitleToggle();
-                              });
-                            },
-                          ),
+                          widget.showTitleToggleIcon
+                              ? IconButton(
+                                  icon: Icon(Icons.text_format),
+                                  onPressed: () {
+                                    setState(() {
+                                      widget.onTitleToggle();
+                                    });
+                                  },
+                                )
+                              : const SizedBox(width: 48),
                           // copy
                           IconButton(
                             icon: Icon(Icons.copy),
