@@ -88,8 +88,64 @@ class _CategoryMenuState extends State<CategoryMenu> {
           trailing: CategoryMenu.categoryEditMode
               ? IconButton(
                   onPressed: () {
-                    dataController.deleteCategory(category.id);
-                    setSheetState(() {});
+                    final int noteCount = dataController.getNoteCountInCatagory(
+                      category.id,
+                    );
+                    final String categoryName = dataController.getCategoryName(
+                      category.id,
+                    );
+
+                    showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) {
+                        return AlertDialog(
+                          title: const Text('Delete Category?'),
+                          content: RichText(
+                            text: TextSpan(
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.black),
+                              children: [
+                                const TextSpan(
+                                  text: 'Are you sure you want to delete ',
+                                ),
+                                TextSpan(
+                                  text: categoryName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text:
+                                      ' with\n$noteCount ${noteCount == 1 ? 'note' : 'notes'}?',
+                                ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        );
+                      },
+                    ).then((confirmed) {
+                      if (confirmed == true) {
+                        if (category.id == filterCategoryId) {
+                          filterCategoryId = CATAGORY_FILTER_ALL;
+                        }
+                        dataController.deleteCategory(category.id);
+                        setSheetState(() {});
+                      }
+                    });
                   },
                   icon: Icon(Icons.delete),
                 )

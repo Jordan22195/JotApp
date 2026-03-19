@@ -211,29 +211,43 @@ class AppDataController extends ChangeNotifier {
     return n.id;
   }
 
-  void deleteNote(String noteId) {
-    for (int i = 0; i < _data.notes.length; i++) {
-      if (_data.notes[i].id == noteId) {
-        _data.notes.removeAt(i);
+  void deleteNote(String noteId, {bool notify = true}) {
+    Note? deleted = _data.noteIdMap.remove(noteId);
+    _data.notes.remove(deleted);
+    if (notify) {
+      saveAppData(_data);
+      notifyListeners();
+    }
+  }
+
+  int getNoteCountInCatagory(String categoryId) {
+    int c = 0;
+    for (Note n in _data.notes) {
+      if (n.categoryId == categoryId) {
+        c++;
       }
     }
-    _data.noteIdMap.remove(noteId);
-    saveAppData(_data);
-    notifyListeners();
+    return c;
   }
 
   void deleteCategory(String categoryId) {
-    for (Note n in _data.notes) {
-      if (n.categoryId == categoryId) {
-        n.categoryId = CATAGORY_FILTER_UNSORTED;
-      }
+    if (categoryId == CATAGORY_FILTER_UNSORTED ||
+        categoryId == CATAGORY_FILTER_ALL) {
+      return;
     }
-    for (int i = 0; i < _data.categories.length; i++) {
-      if (_data.categories[i].id == categoryId) {
-        _data.categories.removeAt(i);
-      }
+
+    final List<String> noteIdsToDelete = _data.notes
+        .where((n) => n.categoryId == categoryId)
+        .map((n) => n.id)
+        .toList();
+
+    for (final noteId in noteIdsToDelete) {
+      deleteNote(noteId, notify: false);
     }
+
+    _data.categories.removeWhere((category) => category.id == categoryId);
     _data.categoryIdMap.remove(categoryId);
+
     saveAppData(_data);
     notifyListeners();
   }

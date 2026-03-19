@@ -45,7 +45,7 @@ const Map<ColorPalettes, List<Color>> colorPalettes = {
   ColorPalettes.red: redPalette,
 };
 
-enum MenuAction { saveAppData, loadAppData }
+enum MenuAction { deleteCatagory, loadAppData }
 
 Color? getColor(int index) {
   return colorPalettes[currentPallete]?[index];
@@ -591,11 +591,72 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (action == MenuAction.loadAppData) {
                   pickAndLoadJson(context);
                 }
+                if (action == MenuAction.deleteCatagory) {
+                  final int noteCount = dataController.getNoteCountInCatagory(
+                    filterCategoryId,
+                  );
+                  final String categoryName = dataController.getCategoryName(
+                    filterCategoryId,
+                  );
+
+                  showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) {
+                      return AlertDialog(
+                        title: const Text('Delete Category?'),
+                        content: RichText(
+                          text: TextSpan(
+                            style: Theme.of(dialogContext).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.black),
+                            children: [
+                              const TextSpan(
+                                text: 'Are you sure you want to delete ',
+                              ),
+                              TextSpan(
+                                text: categoryName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text:
+                                    ' with\n$noteCount ${noteCount == 1 ? 'note' : 'notes'}?',
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      );
+                    },
+                  ).then((confirmed) {
+                    if (confirmed == true) {
+                      dataController.deleteCategory(filterCategoryId);
+                      setState(() {
+                        filterCategoryId = CATAGORY_FILTER_ALL;
+                      });
+                    }
+                  });
+                }
               },
               itemBuilder: (context) => [
-                CheckedPopupMenuItem(
+                PopupMenuItem(
                   value: MenuAction.loadAppData,
-                  child: const Text('Load App Data'),
+                  child: const Text('Import Notes'),
+                ),
+                PopupMenuItem(
+                  value: MenuAction.deleteCatagory,
+                  child: const Text('Delete Catagory'),
                 ),
               ],
             ),
