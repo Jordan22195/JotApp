@@ -179,6 +179,9 @@ class _NoteCardState extends State<NoteCard>
   );
 
   String getCardCategory(String categoryId) {
+    if (categoryId == CATAGORY_FILTER_UNSORTED) {
+      return "Uncategorized";
+    }
     String ret = "";
     for (Category l in dataController.data.categories) {
       if (l.id == categoryId) {
@@ -386,7 +389,6 @@ class _NoteCardState extends State<NoteCard>
   bool testCheck = true;
   @override
   Widget build(BuildContext context) {
-    print("building card ${widget.note.id}");
     dataController = context.watch<AppDataController>();
     return SlideTransition(
       position: _slideAnimation,

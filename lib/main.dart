@@ -60,7 +60,7 @@ class ShortDelayReorderableDragStartListener
     super.key,
     required super.child,
     required super.index,
-    this.delay = const Duration(milliseconds: 150),
+    this.delay = const Duration(milliseconds: 250),
   });
 
   final Duration delay;
@@ -197,12 +197,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   NoteSortMode getNextSortMode(NoteSortMode mode) {
     switch (mode) {
-      case NoteSortMode.oldestFirst:
+      case NoteSortMode.byCategory:
         return NoteSortMode.newestFirst;
       case NoteSortMode.newestFirst:
-        return NoteSortMode.byCategory;
-      case NoteSortMode.byCategory:
         return NoteSortMode.oldestFirst;
+      case NoteSortMode.oldestFirst:
+        return NoteSortMode.byCategory;
     }
   }
 
@@ -235,7 +235,10 @@ class _MyHomePageState extends State<MyHomePage> {
       currentSortMode = nextMode;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+
+    messenger.showSnackBar(
       SnackBar(
         content: Text(getSortModeLabel(nextMode)),
         duration: const Duration(milliseconds: 750),
