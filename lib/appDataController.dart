@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'AppData.dart';
 import 'noteCard.dart';
 import 'dataStorage.dart';
@@ -16,20 +18,49 @@ void setCatagoryFilter(String filterId) {
 }
 
 class AppDataController extends ChangeNotifier {
+  static const Duration autosaveInterval = Duration(seconds: 5);
+
   AppData _data = AppData(notes: [], categories: []);
   bool _loaded = false;
+  bool _dirty = false;
+  Timer? _autosaveTimer;
 
   AppData get data => _data;
   bool get isLoaded => _loaded;
 
   AppDataController() {
     _initialize();
+    _autosaveTimer = Timer.periodic(autosaveInterval, (_) => flush());
   }
 
   Future<void> _initialize() async {
     _data = await loadAppData();
     _loaded = true;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _autosaveTimer?.cancel();
+    super.dispose();
+  }
+
+  void _save() {
+    _dirty = false;
+    saveAppData(_data);
+  }
+
+  // Mark in-memory data as changed without writing to disk yet;
+  // the autosave timer persists it on its next tick.
+  void markDirty() {
+    _dirty = true;
+  }
+
+  // Write any pending changes to disk immediately.
+  void flush() {
+    if (_dirty) {
+      _save();
+    }
   }
 
   Map<String, dynamic> categoryToJson(String categoryId) {
@@ -108,7 +139,7 @@ class AppDataController extends ChangeNotifier {
       }
     }
     notifyListeners();
-    saveAppData(_data);
+    _save();
     status.add("Imported $insertIndex New Notes");
     return status;
   }
@@ -127,20 +158,20 @@ class AppDataController extends ChangeNotifier {
 
   void addNote(Note note) {
     _data.notes.insert(0, note);
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
   void importFromJson(Map<String, dynamic> json) {
     appendAppDataFromJson(json);
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
   void setNoteCatagory(String noteId, String categoryId) {
     getNote(noteId).categoryId = categoryId;
     moveCategoryToTopOfList(categoryId);
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -206,7 +237,7 @@ class AppDataController extends ChangeNotifier {
         filterCategoryId != CATAGORY_FILTER_ALL) {
       moveCategoryToTopOfList(n.categoryId);
     }
-    saveAppData(_data);
+    _save();
     notifyListeners();
     return n.id;
   }
@@ -215,7 +246,7 @@ class AppDataController extends ChangeNotifier {
     Note? deleted = _data.noteIdMap.remove(noteId);
     _data.notes.remove(deleted);
     if (notify) {
-      saveAppData(_data);
+      _save();
       notifyListeners();
     }
   }
@@ -248,7 +279,7 @@ class AppDataController extends ChangeNotifier {
     _data.categories.removeWhere((category) => category.id == categoryId);
     _data.categoryIdMap.remove(categoryId);
 
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -266,14 +297,14 @@ class AppDataController extends ChangeNotifier {
     );
     _data.categories.insert(0, newCategory);
     _data.categoryIdMap[newCategory.id] = newCategory;
-    saveAppData(_data);
+    _save();
     notifyListeners();
     return newCategory.id;
   }
 
   void setCategoryAsChecklist(String categoryId, bool value) {
     getCategory(categoryId).checklist = value;
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -283,7 +314,7 @@ class AppDataController extends ChangeNotifier {
         c.showTimestamps = value;
       }
     }
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -304,7 +335,7 @@ class AppDataController extends ChangeNotifier {
       }
     }
 
-    saveAppData(_data);
+    _save();
     // notifyListeners();
   }
 
@@ -319,14 +350,14 @@ class AppDataController extends ChangeNotifier {
   void toggleNoteTitle(String noteId) {
     Note n = getNote(noteId);
     n.isTitle = !n.isTitle;
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
   void setNoteText(String noteId, String text) {
     Note n = getNote(noteId);
     n.text = text;
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -334,7 +365,7 @@ class AppDataController extends ChangeNotifier {
     Note n = getNote(noteId);
     n.checked = checked;
     moveCategoryToTopOfList(getNote(noteId).categoryId);
-    saveAppData(_data);
+    _save();
   }
 
   String getNoteCreationDateTime(String noteId) {
@@ -349,14 +380,14 @@ class AppDataController extends ChangeNotifier {
     for (Note n in _data.notes) {
       n.isEditing = false;
     }
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
   void setCatagoryName(String id, String name) {
     Category cat = getCategory(id);
     cat.name = name;
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -368,7 +399,7 @@ class AppDataController extends ChangeNotifier {
 
     _data.notes.removeAt(oldIndex);
     _data.notes.insert(newIndex, getNote(noteIdSource));
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -431,7 +462,7 @@ class AppDataController extends ChangeNotifier {
         }
       }
     }
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -457,7 +488,7 @@ class AppDataController extends ChangeNotifier {
     int oldIndex = getNoteIndexInList(noteId);
     _data.notes.removeAt(oldIndex);
     _data.notes.add(getNote(noteId));
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
@@ -465,12 +496,12 @@ class AppDataController extends ChangeNotifier {
     int oldIndex = getNoteIndexInList(noteId);
     _data.notes.removeAt(oldIndex);
     _data.notes.insert(0, getNote(noteId));
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 
   void commitData() {
-    saveAppData(_data);
+    _save();
     notifyListeners();
   }
 }

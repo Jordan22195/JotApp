@@ -84,7 +84,8 @@ class MyApp extends StatelessWidget {
     Color c3 = pallette[1]; // tertiary
     Color c4 = pallette[0]; // background
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Jot',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme(
@@ -187,7 +188,8 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage>
+    with WidgetsBindingObserver {
   String latestInputText = "";
   bool showChecked = true;
 
@@ -252,6 +254,22 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      context.read<AppDataController>().flush();
+    }
   }
 
   void scrollToTop() {
@@ -462,6 +480,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 note.text = newText;
                 noteEditText = newText;
               });
+              dataController.markDirty();
             },
             onSave: () {
               setState(() {
@@ -739,6 +758,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   note.text = newText;
                   noteEditText = newText;
                 });
+                dataController.markDirty();
               },
               onSave: () {
                 setState(() {
