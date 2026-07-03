@@ -344,7 +344,7 @@ class _NoteCardState extends State<NoteCard>
   }
 
   Widget buildCategoryLabel() {
-    double textWidth = 80;
+    double textWidth = 180;
     if (filterCategoryId == CATAGORY_FILTER_ALL) {
       return SizedBox(
         width: textWidth,
@@ -405,7 +405,8 @@ class _NoteCardState extends State<NoteCard>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            child: InkWell(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 widget.onTap();
                 dataController.endEditForAllNotes();
@@ -414,6 +415,7 @@ class _NoteCardState extends State<NoteCard>
                 if (cardTextOverflow) {
                   cardStateExpanded = true;
                 }
+                setState(() {});
               },
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -513,11 +515,23 @@ class _NoteCardState extends State<NoteCard>
                           ],
                         ),
 
-                        Row(
+                        Stack(
+                          alignment: AlignmentDirectional.center,
                           children: [
-                            buildCategoryLabel(),
-                            Expanded(child: buildExpandIcon(hasOverflow)),
-                            if (!widget.titleCard) buildTimestampLabel(),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: buildCategoryLabel(),
+                            ),
+                            Align(
+                              alignment: Alignment.center,
+                              child: buildExpandIcon(hasOverflow),
+                            ),
+
+                            if (!widget.titleCard)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: buildTimestampLabel(),
+                              ),
                           ],
                         ),
 
